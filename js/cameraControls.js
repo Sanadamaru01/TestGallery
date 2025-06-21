@@ -114,9 +114,14 @@ export function setupCameraControls(camera, renderer, controlsTargetY, floor, sc
         const now = performance.now() / 1000;
         const elapsed = now - moveStart;
         const t = Math.min(elapsed / moveDuration, 1);
+    
         camera.position.lerpVectors(moveFrom, moveTo, t);
-        camera.lookAt(controls.target);
-        if (t >= 1) moveStart = null;
+        // 🔸ここでは lookAt しない：移動前の方向を維持
+    
+        if (t >= 1) {
+          moveStart = null;
+          camera.lookAt(controls.target); // 🔸移動が終わってから向き直す
+        }
       }
     },
   };
