@@ -15,6 +15,14 @@
       background-color: #000;
       color: #e0e0e0;
     }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 0;
+    }
   </style>
   <script type="importmap">
     {
@@ -26,9 +34,13 @@
   </script>
 </head>
 <body class="relative">
-  <!-- Header with Banner and Navigation -->
-  <!--
-  <header class="absolute top-0 left-0 w-full z-10">
+  <!-- スマホ用トグルボタン -->
+  <button class="fixed top-2 right-2 sm:hidden z-20 text-white" id="toggleHeader">
+    <i data-lucide="menu"></i>
+  </button>
+
+  <!-- ヘッダー：PCでは上にマウスを近づけると表示、スマホではトグル -->
+  <header id="mainHeader" class="absolute top-0 w-full opacity-0 transition-opacity duration-300 pointer-events-none sm:pointer-events-auto sm:opacity-0 z-10">
     <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4">
       <a href="../room0/index.html" class="text-gray-300 hover:text-white z-10">
         <i data-lucide="chevron-left" class="w-6 h-6"></i>
@@ -44,9 +56,8 @@
       </a>
     </div>
   </header>
-  -->
-  <!-- Help Icon and Toggleable Guide -->
-  <!--
+
+  <!-- ヘルプボタン -->
   <div class="absolute bottom-4 right-4 z-10">
     <button id="toggleHelp" class="text-gray-400 hover:text-white">
       <i data-lucide="help-circle" class="w-6 h-6"></i>
@@ -55,8 +66,8 @@
       ドラッグで回転、ピンチで拡大・縮小、画像クリックで拡大
     </div>
   </div>
-  -->
-  <!-- Main Script: Three.js Gallery -->
+
+  <!-- メインスクリプト：Three.js -->
   <script type="module">
     import { loadConfig } from '../../js/configLoader.js';
     import { initGallery } from '../../js/gallery.js';
@@ -73,9 +84,33 @@
   <script>
     lucide.createIcons();
 
+    // ヘルプトグル
     document.getElementById('toggleHelp').addEventListener('click', () => {
       const help = document.getElementById('helpText');
       help.classList.toggle('hidden');
+    });
+
+    // ヘッダ表示（PC：上部移動で表示）
+    const header = document.getElementById('mainHeader');
+    let isVisible = false;
+    document.addEventListener('mousemove', (e) => {
+      if (e.clientY < 60) {
+        if (!isVisible) {
+          header.classList.remove('opacity-0', 'pointer-events-none');
+          header.classList.add('opacity-100');
+          isVisible = true;
+        }
+      } else if (isVisible) {
+        header.classList.remove('opacity-100');
+        header.classList.add('opacity-0', 'pointer-events-none');
+        isVisible = false;
+      }
+    });
+
+    // スマホトグル
+    document.getElementById('toggleHeader').addEventListener('click', () => {
+      header.classList.toggle('opacity-100');
+      header.classList.toggle('pointer-events-none');
     });
   </script>
 </body>
