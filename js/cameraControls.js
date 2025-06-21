@@ -24,15 +24,18 @@ export function setupCameraControls(camera, renderer, controlsTargetY, floor, sc
   let isClick = false;
   let clickStartTime = 0;
 
-  // カメラ注視の状態記録用
+  // パネルの前後移動のための記録
   let lastPanel = null;
   let lastCameraPos = new THREE.Vector3();
   let lastCameraTarget = new THREE.Vector3();
 
-  // 移動中に注視する方向（最初に見ていた方向）
+  // カメラが移動中に向く方向（通常は移動前に見ていた方向）
   let currentLookAt = new THREE.Vector3();
 
-  function moveCameraTo(lookAtPos, offsetDirection = null, distance = 0.5) {
+  // 後退時に移動完了後に変更すべき注視点
+  let pendingTarget = null;
+
+  function moveCameraTo(lookAtPos, offsetDirection = null, distance = 0.5, isReturn = false) {
     const direction = offsetDirection
       ? offsetDirection.clone().normalize()
       : new THREE.Vector3().subVectors(camera.position, lookAtPos).normalize();
@@ -40,10 +43,17 @@ export function setupCameraControls(camera, renderer, controlsTargetY, floor, sc
     const newCamPos = lookAtPos.clone().addScaledVector(direction, distance);
     newCamPos.y = camera.position.y;
 
-    // 注視点（現在見ている方向）を保存
-    currentLookAt.copy(controls.target);
+    if (isReturn) {
+      // 後退：今の向きを保って戻り、到着後に注視点変更
+      currentLookAt.copy(controls.target);
+      pendingTarget = lookAtPos.clone();
+    } else {
+      // 前進：先に注視点を設定し、その方向を向いて移動
+      controls.target.copy(lookAtPos);
+      currentLookAt.copy(lookAtPos);
+      pendingTarget = null;
+    }
 
-    controls.target.copy(lookAtPos);
     moveStart = performance.now() / 1000;
     moveFrom.copy(camera.position);
     moveTo.copy(newCamPos);
@@ -65,21 +75,21 @@ export function setupCameraControls(camera, renderer, controlsTargetY, floor, sc
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
-    // 🖼 パネルクリック時
+    // パネルクリック処理
     const panels = scene.userData.clickablePanels || [];
     const hits = raycaster.intersectObjects(panels);
     if (hits.length > 0) {
       const panel = hits[0].object;
 
       if (lastPanel === panel) {
-        // 同じパネル再クリック → 戻る
-        moveCameraTo(lastCameraTarget, null, 0);
+        // 同じパネルを再クリック → 後退
+        moveCameraTo(lastCameraTarget, null, 0, true); // 第4引数 true → 後退
         moveTo.copy(lastCameraPos);
         lastPanel = null;
         return;
       }
 
-      // 新しいパネルに前進
+      // 新しいパネルをクリック → 前進
       lastPanel = panel;
       lastCameraPos.copy(camera.position);
       lastCameraTarget.copy(controls.target);
@@ -92,11 +102,11 @@ export function setupCameraControls(camera, renderer, controlsTargetY, floor, sc
         .normalize();
 
       const lookAtPos = panelCenter.clone().addScaledVector(panelNormal, -1);
-      moveCameraTo(lookAtPos, panelNormal, -0.5);
+      moveCameraTo(lookAtPos, panelNormal, -0.5); // 第4引数省略 → 前進
       return;
     }
 
-    // 🟦 床クリック時
+    // 床クリック処理
     const floorHits = raycaster.intersectObject(floor);
     if (floorHits.length > 0) {
       const clicked = floorHits[0].point;
@@ -125,11 +135,18 @@ export function setupCameraControls(camera, renderer, controlsTargetY, floor, sc
         const t = Math.min(elapsed / moveDuration, 1);
 
         camera.position.lerpVectors(moveFrom, moveTo, t);
-        camera.lookAt(currentLookAt); // ← 移動中は方向を変えない
+        camera.lookAt(currentLookAt); // 移動中は元の方向を見る
 
         if (t >= 1) {
           moveStart = null;
-          camera.lookAt(controls.target); // ← 移動完了後に対象を見る
+
+          if (pendingTarget) {
+            controls.target.copy(pendingTarget);
+            camera.lookAt(pendingTarget);
+            pendingTarget = null;
+          } else {
+            camera.lookAt(controls.target);
+          }
         }
       }
     },
