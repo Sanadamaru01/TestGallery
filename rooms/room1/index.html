@@ -17,10 +17,10 @@
     }
     canvas {
       position: absolute;
-      top: 0;
+      top: 40px;
       left: 0;
       width: 100% !important;
-      height: 100% !important;
+      height: calc(100% - 40px) !important;
       z-index: 0;
     }
   </style>
@@ -34,12 +34,12 @@
   </script>
 </head>
 <body class="relative">
-  <!-- スマホ用トグルボタン -->
-  <button class="fixed top-2 right-2 sm:hidden z-20 text-white" id="toggleHeader">
-    <i data-lucide="menu"></i>
-  </button>
+  <!-- ヘッダー表示トリガー（三角形スペース） -->
+  <div id="headerTrigger" class="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-6 z-20 cursor-pointer">
+    <div class="w-0 h-0 border-l-6 border-r-6 border-l-transparent border-r-transparent border-b-6 border-b-gray-400 mx-auto"></div>
+  </div>
 
-  <!-- ヘッダー：PCでは上にマウスを近づけると表示、スマホではトグル -->
+  <!-- ヘッダー本体 -->
   <header id="mainHeader" class="absolute top-0 w-full opacity-0 transition-opacity duration-300 pointer-events-none sm:pointer-events-auto sm:opacity-0 z-10">
     <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4">
       <a href="../room0/index.html" class="text-gray-300 hover:text-white z-10">
@@ -90,25 +90,10 @@
       help.classList.toggle('hidden');
     });
 
-    // ヘッダ表示（PC：上部移動で表示）
+    // 三角クリックでヘッダ表示切り替え
     const header = document.getElementById('mainHeader');
-    let isVisible = false;
-    document.addEventListener('mousemove', (e) => {
-      if (e.clientY < 60) {
-        if (!isVisible) {
-          header.classList.remove('opacity-0', 'pointer-events-none');
-          header.classList.add('opacity-100');
-          isVisible = true;
-        }
-      } else if (isVisible) {
-        header.classList.remove('opacity-100');
-        header.classList.add('opacity-0', 'pointer-events-none');
-        isVisible = false;
-      }
-    });
-
-    // スマホトグル
-    document.getElementById('toggleHeader').addEventListener('click', () => {
+    const trigger = document.getElementById('headerTrigger');
+    trigger.addEventListener('click', () => {
       header.classList.toggle('opacity-100');
       header.classList.toggle('pointer-events-none');
     });
