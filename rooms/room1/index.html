@@ -35,15 +35,12 @@
 </head>
 <body class="relative">
   <!-- ヘッダー表示トリガー（三角形スペース） -->
-<!-- ヘッダー表示トリガー（三角形スペース） -->
-<div id="headerTrigger"
-     class="absolute top-0 left-1/2 transform -translate-x-1/2 z-20 cursor-pointer flex items-center justify-center w-16 h-10">
-  <div class="w-0 h-0 border-l-[16px] border-r-[16px] border-t-[20px] border-transparent border-t-white"></div>
-</div>
+  <div id="headerTrigger"
+       class="absolute top-0 left-1/2 transform -translate-x-1/2 z-20 cursor-pointer flex items-center justify-center w-16 h-10">
+    <div class="w-0 h-0 border-l-[16px] border-r-[16px] border-t-[20px] border-transparent border-t-white"></div>
+  </div>
 
-
-  <!-- ヘッダー本体（現在コメントアウト中） -->
-  <!--
+  <!-- ヘッダー本体 -->
   <header id="mainHeader" class="absolute top-0 w-full opacity-0 transition-opacity duration-300 pointer-events-none sm:pointer-events-auto sm:opacity-0 z-10">
     <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4">
       <a href="../room0/index.html" class="text-gray-300 hover:text-white z-10">
@@ -60,10 +57,8 @@
       </a>
     </div>
   </header>
-  -->
 
-  <!-- ヘルプボタン（現在コメントアウト中） -->
-  <!--
+  <!-- ヘルプボタン -->
   <div class="absolute bottom-4 right-4 z-10">
     <button id="toggleHelp" class="text-gray-400 hover:text-white">
       <i data-lucide="help-circle" class="w-6 h-6"></i>
@@ -72,7 +67,6 @@
       ドラッグで回転、ピンチで拡大・縮小、画像クリックで拡大
     </div>
   </div>
-  -->
 
   <!-- メインスクリプト：Three.js -->
   <script type="module">
@@ -91,21 +85,24 @@
   <script>
     lucide.createIcons();
 
-    // ヘルプトグル（現在使用していません）
-    // document.getElementById('toggleHelp').addEventListener('click', () => {
-    //   const help = document.getElementById('helpText');
-    //   help.classList.toggle('hidden');
-    // });
+    // ヘルプトグル
+    document.getElementById('toggleHelp').addEventListener('click', () => {
+      const help = document.getElementById('helpText');
+      help.classList.toggle('hidden');
+    });
 
-    // 三角クリックでヘッダ表示切り替え（ヘッダー非表示中のため機能停止中）
+    // 三角クリックでヘッダー表示切替
     const header = document.getElementById('mainHeader');
     const trigger = document.getElementById('headerTrigger');
-    if (header && trigger) {
-      trigger.addEventListener('click', () => {
-        header.classList.toggle('opacity-100');
-        header.classList.toggle('pointer-events-none');
-      });
-    }
+    trigger.addEventListener('click', () => {
+      if (header.classList.contains('opacity-0')) {
+        header.classList.remove('opacity-0', 'pointer-events-none');
+        header.classList.add('opacity-100');
+      } else {
+        header.classList.remove('opacity-100');
+        header.classList.add('opacity-0', 'pointer-events-none');
+      }
+    });
   </script>
 </body>
 </html>
