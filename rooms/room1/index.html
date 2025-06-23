@@ -23,6 +23,20 @@
       height: calc(100% - 40px) !important;
       z-index: 0;
     }
+
+    /* 三角形を明示的に表示 */
+    #headerTrigger .triangle {
+      width: 0;
+      height: 0;
+      border-left: 16px solid transparent;
+      border-right: 16px solid transparent;
+      border-top: 20px solid white;
+    }
+
+    /* 初期状態は非表示 */
+    #mainHeader.hidden {
+      display: none;
+    }
   </style>
   <script type="importmap">
     {
@@ -34,20 +48,21 @@
   </script>
 </head>
 <body class="relative">
-  <!-- ヘッダー表示トリガー（三角形スペース） -->
+  <!-- ▽ 三角のヘッダー表示トリガー -->
   <div id="headerTrigger"
        class="absolute top-0 left-1/2 transform -translate-x-1/2 z-20 cursor-pointer flex items-center justify-center w-16 h-10">
-    <div class="w-0 h-0 border-l-[16px] border-r-[16px] border-t-[20px] border-transparent border-t-white"></div>
+    <div class="triangle"></div>
   </div>
 
   <!-- ヘッダー本体 -->
-  <header id="mainHeader" class="absolute top-0 w-full opacity-0 transition-opacity duration-300 pointer-events-none sm:pointer-events-auto sm:opacity-0 z-10">
-    <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4">
+  <header id="mainHeader" class="hidden absolute top-0 w-full z-10">
+    <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4 bg-black/70">
       <a href="../room0/index.html" class="text-gray-300 hover:text-white z-10">
         <i data-lucide="chevron-left" class="w-6 h-6"></i>
       </a>
       <div class="relative flex-1 h-full mx-2">
-        <img src="../shared/title-banner.jpg" alt="Gallery Banner" class="absolute w-full h-full object-cover opacity-50" />
+        <img src="../shared/title-banner.jpg" alt="Gallery Banner"
+             class="absolute w-full h-full object-cover opacity-50 pointer-events-none" />
         <div class="absolute inset-0 flex items-center justify-center">
           <h1 class="text-sm sm:text-xl font-bold text-white drop-shadow">Room 1 Gallery</h1>
         </div>
@@ -68,7 +83,7 @@
     </div>
   </div>
 
-  <!-- メインスクリプト：Three.js -->
+  <!-- Three.js スクリプト -->
   <script type="module">
     import { loadConfig } from '../../js/configLoader.js';
     import { initGallery } from '../../js/gallery.js';
@@ -87,21 +102,14 @@
 
     // ヘルプトグル
     document.getElementById('toggleHelp').addEventListener('click', () => {
-      const help = document.getElementById('helpText');
-      help.classList.toggle('hidden');
+      document.getElementById('helpText').classList.toggle('hidden');
     });
 
-    // 三角クリックでヘッダー表示切替
+    // ヘッダー表示トグル
     const header = document.getElementById('mainHeader');
     const trigger = document.getElementById('headerTrigger');
     trigger.addEventListener('click', () => {
-      if (header.classList.contains('opacity-0')) {
-        header.classList.remove('opacity-0', 'pointer-events-none');
-        header.classList.add('opacity-100');
-      } else {
-        header.classList.remove('opacity-100');
-        header.classList.add('opacity-0', 'pointer-events-none');
-      }
+      header.classList.toggle('hidden');
     });
   </script>
 </body>
