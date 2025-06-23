@@ -7,91 +7,53 @@
   <style>
     body {
       margin: 0;
-      background-color: black;
-      font-family: 'Noto Sans JP', sans-serif;
-      color: #e0e0e0;
       overflow: hidden;
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #000;
+      color: #e0e0e0;
     }
-
-    /* Canvasは全画面 */
-    canvas {
+    /* タイトルバー常時表示 */
+    #titleBar {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw !important;
-      height: 100vh !important;
-      z-index: 0;
-    }
-
-    /* ▽トリガー */
-    #triangle {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 16px solid transparent;
-      border-right: 16px solid transparent;
-      border-top: 20px solid white;
-      cursor: pointer;
-      z-index: 100;
-    }
-
-    /* ヘッダー本体 */
-    #mainHeader {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
+      width: 100%;
+      height: 60px;
       background-color: rgba(0, 0, 0, 0.7);
-      color: white;
-      z-index: 90;
-      padding: 10px 20px;
-      box-sizing: border-box;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
+      color: white;
       font-weight: bold;
+      font-size: 1.2rem;
+      z-index: 100;
       user-select: none;
     }
-
-    /* ヘッダー内のリンク */
-    #mainHeader a {
-      color: #ccc;
-      text-decoration: none;
-      margin: 0 10px;
+    /* 3Dギャラリーのcanvas調整 */
+    canvas {
+      position: fixed;
+      top: 60px; /* タイトルバー分だけ下げる */
+      left: 0;
+      width: 100% !important;
+      height: calc(100% - 60px) !important;
+      z-index: 0;
+      display: block;
     }
-
-    #mainHeader a:hover {
-      color: white;
-    }
-
-    /* ヘッダー中央タイトル */
-    #mainHeader .title {
-      flex-grow: 1;
-      text-align: center;
-      font-size: 1.2rem;
-      user-select: text;
-    }
-
   </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.175.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
+  <!-- 常時表示タイトルバー -->
+  <div id="titleBar">Room 1 Gallery</div>
 
-  <!-- Three.jsのcanvas（中身はJSで生成される） -->
-  <canvas id="galleryCanvas"></canvas>
-
-  <!-- ▽クリックトリガー -->
-  <div id="triangle" title="メニュー表示"></div>
-
-  <!-- ヘッダー -->
-  <header id="mainHeader">
-    <a href="../room0/index.html">&lt; 前の部屋</a>
-    <div class="title">Room 1 Gallery</div>
-    <a href="../room2/index.html">次の部屋 &gt;</a>
-  </header>
+  <!-- 3Dギャラリー用のcanvasはThree.jsが自動生成します -->
 
   <script type="module">
     import { loadConfig } from '../../js/configLoader.js';
@@ -105,20 +67,5 @@
       initGallery(images, config, `${roomPath}images/`);
     });
   </script>
-
-  <script>
-    // ▽クリックでヘッダー表示切替
-    const triangle = document.getElementById('triangle');
-    const header = document.getElementById('mainHeader');
-
-    triangle.addEventListener('click', () => {
-      if (header.style.display === 'flex') {
-        header.style.display = 'none';
-      } else {
-        header.style.display = 'flex';
-      }
-    });
-  </script>
-
 </body>
 </html>
