@@ -28,6 +28,35 @@
       font-size: 1.2rem;
       z-index: 100;
       user-select: none;
+      padding: 0 16px;
+      box-sizing: border-box;
+    }
+    /* 前の部屋・次の部屋リンク */
+    #titleBar a {
+      color: #ccc;
+      text-decoration: none;
+      font-weight: normal;
+      font-size: 1rem;
+      padding: 8px 12px;
+      transition: color 0.3s;
+      user-select: auto;
+    }
+    #titleBar a:hover {
+      color: white;
+    }
+    #prevRoom {
+      position: absolute;
+      left: 16px;
+    }
+    #nextRoom {
+      position: absolute;
+      right: 16px;
+    }
+    /* タイトルテキストは中央寄せ */
+    #titleText {
+      flex-grow: 1;
+      text-align: center;
+      pointer-events: none; /* タイトルテキストにマウスイベント通さない */
     }
     /* 3Dギャラリーのcanvas調整 */
     canvas {
@@ -51,7 +80,11 @@
 </head>
 <body>
   <!-- 常時表示タイトルバー -->
-  <div id="titleBar">Room 1 Gallery</div>
+  <div id="titleBar">
+    <a id="prevRoom" href="../room0/index.html">&lt; 前の部屋</a>
+    <div id="titleText">Room 1 Gallery</div>
+    <a id="nextRoom" href="../room2/index.html">次の部屋 &gt;</a>
+  </div>
 
   <!-- 3Dギャラリー用のcanvasはThree.jsが自動生成します -->
 
