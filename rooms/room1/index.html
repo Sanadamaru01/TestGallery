@@ -4,50 +4,94 @@
   <meta charset="UTF-8" />
   <title>Room 1 Gallery</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
   <style>
     body {
       margin: 0;
-      background-color: #000;
+      background-color: black;
+      font-family: 'Noto Sans JP', sans-serif;
+      color: #e0e0e0;
+      overflow: hidden;
     }
+
+    /* Canvasは全画面 */
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 0;
+    }
+
+    /* ▽トリガー */
+    #triangle {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 16px solid transparent;
+      border-right: 16px solid transparent;
+      border-top: 20px solid white;
+      cursor: pointer;
+      z-index: 100;
+    }
+
+    /* ヘッダー本体 */
+    #mainHeader {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      z-index: 90;
+      padding: 10px 20px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    /* ヘッダー内のリンク */
+    #mainHeader a {
+      color: #ccc;
+      text-decoration: none;
+      margin: 0 10px;
+    }
+
+    #mainHeader a:hover {
+      color: white;
+    }
+
+    /* ヘッダー中央タイトル */
+    #mainHeader .title {
+      flex-grow: 1;
+      text-align: center;
+      font-size: 1.2rem;
+      user-select: text;
+    }
+
   </style>
 </head>
-<body class="relative">
+<body>
 
-  <!-- ▽ボタン（中央） -->
-  <div id="headerTrigger"
-       class="fixed top-2 left-1/2 transform -translate-x-1/2 z-50 cursor-pointer w-0 h-0 border-l-[16px] border-r-[16px] border-t-[20px] border-l-transparent border-r-transparent border-t-white">
-  </div>
+  <!-- Three.jsのcanvas（中身はJSで生成される） -->
+  <canvas id="galleryCanvas"></canvas>
 
-  <!--
-  <header id="mainHeader" class="hidden absolute top-0 w-full z-10">
-    <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4 bg-black/70">
-      <a href="../room0/index.html" class="text-gray-300 hover:text-white z-10">
-        <i class="w-6 h-6">＜</i>
-      </a>
-      <div class="relative flex-1 h-full mx-2">
-        <img src="../shared/title-banner.jpg" alt="Gallery Banner"
-             class="absolute w-full h-full object-cover opacity-50 pointer-events-none" />
-        <div class="absolute inset-0 flex items-center justify-center">
-          <h1 class="text-sm sm:text-xl font-bold text-white drop-shadow">Room 1 Gallery</h1>
-        </div>
-      </div>
-      <a href="../room2/index.html" class="text-gray-300 hover:text-white z-10">
-        <i class="w-6 h-6">＞</i>
-      </a>
-    </div>
+  <!-- ▽クリックトリガー -->
+  <div id="triangle" title="メニュー表示"></div>
+
+  <!-- ヘッダー -->
+  <header id="mainHeader">
+    <a href="../room0/index.html">&lt; 前の部屋</a>
+    <div class="title">Room 1 Gallery</div>
+    <a href="../room2/index.html">次の部屋 &gt;</a>
   </header>
-
-  <div class="absolute bottom-4 right-4 z-10">
-    <button id="toggleHelp" class="text-gray-400 hover:text-white">
-      <i class="w-6 h-6">？</i>
-    </button>
-    <div id="helpText" class="mt-2 text-xs text-gray-300 bg-black/70 px-3 py-2 rounded hidden">
-      ドラッグで回転、ピンチで拡大・縮小、画像クリックで拡大
-    </div>
-  </div>
-
-  <canvas></canvas>
 
   <script type="module">
     import { loadConfig } from '../../js/configLoader.js';
@@ -63,17 +107,18 @@
   </script>
 
   <script>
-    document.getElementById('toggleHelp')?.addEventListener('click', () => {
-      document.getElementById('helpText')?.classList.toggle('hidden');
-    });
-
+    // ▽クリックでヘッダー表示切替
+    const triangle = document.getElementById('triangle');
     const header = document.getElementById('mainHeader');
-    const trigger = document.getElementById('headerTrigger');
-    trigger?.addEventListener('click', () => {
-      header?.classList.toggle('hidden');
+
+    triangle.addEventListener('click', () => {
+      if (header.style.display === 'flex') {
+        header.style.display = 'none';
+      } else {
+        header.style.display = 'flex';
+      }
     });
   </script>
-  -->
 
 </body>
 </html>
