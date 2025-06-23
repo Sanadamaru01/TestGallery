@@ -15,6 +15,7 @@
       background-color: #000;
       color: #e0e0e0;
     }
+
     canvas {
       position: absolute;
       top: 40px;
@@ -24,16 +25,6 @@
       z-index: 0;
     }
 
-    /* 三角形を明示的に表示 */
-    #headerTrigger .triangle {
-      width: 0;
-      height: 0;
-      border-left: 16px solid transparent;
-      border-right: 16px solid transparent;
-      border-top: 20px solid white;
-    }
-
-    /* 初期状態は非表示 */
     #mainHeader.hidden {
       display: none;
     }
@@ -48,14 +39,13 @@
   </script>
 </head>
 <body class="relative">
-  
-<!-- ヘッダー表示トリガー（中央に配置された▽） -->
-<div id="headerTrigger"
-     class="absolute top-0 left-1/2 -translate-x-1/2 transform z-50 cursor-pointer w-16 h-10 flex items-center justify-center">
-  <div class="triangle w-0 h-0 border-l-[16px] border-r-[16px] border-t-[20px] border-l-transparent border-r-transparent border-t-white"></div>
-</div>
 
-  
+  <!-- ヘッダー表示トリガー（三角） -->
+  <div id="headerTrigger"
+       class="absolute top-0 left-1/2 -translate-x-1/2 transform z-50 cursor-pointer w-16 h-10 flex items-center justify-center">
+    <div class="w-0 h-0 border-l-[16px] border-r-[16px] border-t-[20px] border-l-transparent border-r-transparent border-t-white"></div>
+  </div>
+
   <!-- ヘッダー本体 -->
   <header id="mainHeader" class="hidden absolute top-0 w-full z-10">
     <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4 bg-black/70">
@@ -102,12 +92,12 @@
   <script>
     lucide.createIcons();
 
-    // ヘルプトグル
+    // ヘルプ表示トグル
     document.getElementById('toggleHelp').addEventListener('click', () => {
       document.getElementById('helpText').classList.toggle('hidden');
     });
 
-    // ヘッダー表示トグル
+    // 三角クリックでヘッダー表示切替
     const header = document.getElementById('mainHeader');
     const trigger = document.getElementById('headerTrigger');
     trigger.addEventListener('click', () => {
