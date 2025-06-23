@@ -5,51 +5,25 @@
   <title>Room 1 Gallery</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/lucide@latest"></script>
   <style>
     body {
       margin: 0;
-      overflow: hidden;
-      font-family: 'Noto Sans JP', sans-serif;
       background-color: #000;
-      color: #e0e0e0;
-    }
-
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100% !important;
-      height: 100% !important;
-      z-index: 0;
-    }
-
-    #mainHeader.hidden {
-      display: none;
     }
   </style>
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js",
-        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.175.0/examples/jsm/"
-      }
-    }
-  </script>
 </head>
 <body class="relative">
 
-  <!-- ▽ボタン -->
+  <!-- ▽ボタン（中央） -->
   <div id="headerTrigger"
        class="fixed top-2 left-1/2 transform -translate-x-1/2 z-50 cursor-pointer w-0 h-0 border-l-[16px] border-r-[16px] border-t-[20px] border-l-transparent border-r-transparent border-t-white">
   </div>
 
-  <!-- ヘッダー -->
-  <header id="mainHeader" class="hidden fixed top-0 w-full z-40">
-    <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4 bg-black/80">
+  <!--
+  <header id="mainHeader" class="hidden absolute top-0 w-full z-10">
+    <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4 bg-black/70">
       <a href="../room0/index.html" class="text-gray-300 hover:text-white z-10">
-        <i data-lucide="chevron-left" class="w-6 h-6"></i>
+        <i class="w-6 h-6">＜</i>
       </a>
       <div class="relative flex-1 h-full mx-2">
         <img src="../shared/title-banner.jpg" alt="Gallery Banner"
@@ -59,22 +33,22 @@
         </div>
       </div>
       <a href="../room2/index.html" class="text-gray-300 hover:text-white z-10">
-        <i data-lucide="chevron-right" class="w-6 h-6"></i>
+        <i class="w-6 h-6">＞</i>
       </a>
     </div>
   </header>
 
-  <!-- ヘルプボタン -->
   <div class="absolute bottom-4 right-4 z-10">
     <button id="toggleHelp" class="text-gray-400 hover:text-white">
-      <i data-lucide="help-circle" class="w-6 h-6"></i>
+      <i class="w-6 h-6">？</i>
     </button>
     <div id="helpText" class="mt-2 text-xs text-gray-300 bg-black/70 px-3 py-2 rounded hidden">
       ドラッグで回転、ピンチで拡大・縮小、画像クリックで拡大
     </div>
   </div>
 
-  <!-- Three.js スクリプト -->
+  <canvas></canvas>
+
   <script type="module">
     import { loadConfig } from '../../js/configLoader.js';
     import { initGallery } from '../../js/gallery.js';
@@ -89,19 +63,17 @@
   </script>
 
   <script>
-    lucide.createIcons();
-
-    // ヘルプトグル
-    document.getElementById('toggleHelp').addEventListener('click', () => {
-      document.getElementById('helpText').classList.toggle('hidden');
+    document.getElementById('toggleHelp')?.addEventListener('click', () => {
+      document.getElementById('helpText')?.classList.toggle('hidden');
     });
 
-    // ヘッダートグル（▽クリック）
     const header = document.getElementById('mainHeader');
     const trigger = document.getElementById('headerTrigger');
-    trigger.addEventListener('click', () => {
-      header.classList.toggle('hidden');
+    trigger?.addEventListener('click', () => {
+      header?.classList.toggle('hidden');
     });
   </script>
+  -->
+
 </body>
 </html>
