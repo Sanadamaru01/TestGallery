@@ -48,12 +48,19 @@
   </script>
 </head>
 <body class="relative">
+  <!--
   <!-- ▽ 三角のヘッダー表示トリガー -->
   <div id="headerTrigger"
        class="absolute top-0 left-1/2 transform -translate-x-1/2 z-20 cursor-pointer flex items-center justify-center w-16 h-10">
     <div class="triangle"></div>
   </div>
+  -->
+  <!-- 三角表示テスト -->
+  <div class="absolute top-0 left-1/2 transform -translate-x-1/2 z-50 cursor-pointer w-16 h-10 flex items-center justify-center">
+    <div class="w-0 h-0 border-l-[16px] border-r-[16px] border-t-[20px] border-l-transparent border-r-transparent border-t-white"></div>
+  </div>
 
+  
   <!-- ヘッダー本体 -->
   <header id="mainHeader" class="hidden absolute top-0 w-full z-10">
     <div class="relative w-full h-20 sm:h-28 overflow-hidden flex items-center justify-between px-4 bg-black/70">
