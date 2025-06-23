@@ -4,6 +4,10 @@ import { setupCameraControls } from './cameraControls.js';
 import { loadImages } from './imageLoader.js';
 
 export function initGallery(imageFiles, config, imageBasePath) {
+  // HTMLのタイトルバーから高さを取得（取得できなければデフォルト60）
+  const titleBar = document.getElementById('titleBar');
+  const HEADER_HEIGHT = titleBar ? parseInt(titleBar.dataset.height, 10) || 60 : 60;
+
   const {
     wallWidth: WALL_WIDTH,
     wallHeight: WALL_HEIGHT,
@@ -11,7 +15,6 @@ export function initGallery(imageFiles, config, imageBasePath) {
     backgroundColor
   } = config;
 
-  const HEADER_HEIGHT = 60; // ヘッダー高さ（CSSと一致させる）
   const GALLERY_HEIGHT = WALL_HEIGHT / 2;
 
   const scene = new THREE.Scene();
