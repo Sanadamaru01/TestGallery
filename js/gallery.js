@@ -4,10 +4,6 @@ import { setupCameraControls } from './cameraControls.js';
 import { loadImages } from './imageLoader.js';
 
 export function initGallery(imageFiles, config, imageBasePath) {
-  // HTMLのタイトルバーから高さを取得（取得できなければデフォルト60）
-  const titleBar = document.getElementById('titleBar');
-  const HEADER_HEIGHT = titleBar ? parseInt(titleBar.dataset.height, 10) || 60 : 60;
-
   const {
     wallWidth: WALL_WIDTH,
     wallHeight: WALL_HEIGHT,
@@ -15,6 +11,9 @@ export function initGallery(imageFiles, config, imageBasePath) {
     backgroundColor
   } = config;
 
+  // タイトルバーの高さを data 属性から取得（デフォルト 60）
+  const titleBar = document.getElementById('titleBar');
+  const HEADER_HEIGHT = titleBar ? parseInt(titleBar.dataset.height || '60', 10) : 60;
   const GALLERY_HEIGHT = WALL_HEIGHT / 2;
 
   const scene = new THREE.Scene();
@@ -23,7 +22,7 @@ export function initGallery(imageFiles, config, imageBasePath) {
 
   const camera = new THREE.PerspectiveCamera(
     75,
-    window.innerWidth / (window.innerHeight - HEADER_HEIGHT),
+    window.innerWidth / getViewportHeightMinusHeader(),
     0.1,
     1000
   );
@@ -31,7 +30,7 @@ export function initGallery(imageFiles, config, imageBasePath) {
   camera.lookAt(0, GALLERY_HEIGHT, 0);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight - HEADER_HEIGHT);
+  renderer.setSize(window.innerWidth, getViewportHeightMinusHeader());
   renderer.outputEncoding = THREE.sRGBEncoding;
   document.body.appendChild(renderer.domElement);
 
@@ -52,10 +51,19 @@ export function initGallery(imageFiles, config, imageBasePath) {
   // 画像読み込み・配置
   loadImages(scene, imageFiles, WALL_WIDTH, WALL_HEIGHT, fixedLongSide, imageBasePath);
 
+  // ビューポート高さ取得（安定版）
+  function getViewportHeight() {
+    return document.documentElement.clientHeight;
+  }
+
+  function getViewportHeightMinusHeader() {
+    return getViewportHeight() - HEADER_HEIGHT;
+  }
+
   // リサイズ対応
   function onWindowResize() {
     const width = window.innerWidth;
-    const height = window.innerHeight - HEADER_HEIGHT;
+    const height = getViewportHeightMinusHeader();
 
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
@@ -63,7 +71,9 @@ export function initGallery(imageFiles, config, imageBasePath) {
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
   }
-  window.addEventListener('resize', onWindowResize);
+  window.addEventListener('resize', () => {
+    setTimeout(onWindowResize, 100);
+  });
   onWindowResize();
 
   // アニメーションループ
