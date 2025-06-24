@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --header-height: 60px; /* ← ここで統一定義 */
+      --header-height: 60px;
     }
 
     body {
@@ -17,13 +17,12 @@
       color: #e0e0e0;
     }
 
-    /* タイトルバー常時表示 */
     #titleBar {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
-      height: var(--header-height); /* ← ここを変数で指定 */
+      height: var(--header-height);
       background-color: rgba(0, 0, 0, 0.7);
       display: flex;
       align-items: center;
@@ -67,17 +66,17 @@
       pointer-events: none;
     }
 
-    /* 3Dギャラリー canvas */
     canvas {
       position: fixed;
-      top: var(--header-height); /* ← タイトルバーの高さと連動 */
+      top: var(--header-height);
       left: 0;
       width: 100% !important;
-      height: calc(100% - var(--header-height)) !important; /* ← 高さから引く */
+      height: calc(100% - var(--header-height)) !important;
       z-index: 0;
       display: block;
     }
   </style>
+
   <script type="importmap">
     {
       "imports": {
@@ -87,6 +86,7 @@
     }
   </script>
 </head>
+
 <body>
   <div id="titleBar" data-height="60">
     <a id="prevRoom" href="../room0/index.html">&lt; 前の部屋</a>
@@ -95,6 +95,41 @@
   </div>
 
   <script type="module">
+    // ✅ 1. ルーム公開チェック
+    const scriptUrl = 'https://script.google.com/macros/s/XXXXXXXXXXXXXXXXXXXXXXX/exec'; // ←あなたのURLに差し替え
+    const currentRoomId = 'room1';
+
+    async function checkRoomAvailability() {
+      try {
+        const res = await fetch(scriptUrl);
+        const rooms = await res.json();
+        const room = rooms.find(r => r.roomId === currentRoomId);
+
+        if (!room) {
+          alert('この部屋の情報が見つかりません。');
+          window.location.href = '../index.html';
+          return;
+        }
+
+        const now = new Date();
+        const start = new Date(room.startDate);
+        const end = new Date(room.endDate);
+
+        if (now < start || now > end) {
+          alert(`この展示は現在公開されていません。\n公開期間：${room.startDate} ～ ${room.endDate}`);
+          window.location.href = '../index.html';
+          return;
+        }
+      } catch (error) {
+        console.error('ルーム情報の取得に失敗しました:', error);
+        alert('展示情報の取得に失敗しました。');
+        window.location.href = '../index.html';
+      }
+    }
+
+    await checkRoomAvailability();
+
+    // ✅ 2. ギャラリーの読み込み
     import { loadConfig } from '../../js/configLoader.js';
     import { initGallery } from '../../js/gallery.js';
 
