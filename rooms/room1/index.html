@@ -98,34 +98,66 @@
     // ✅ 1. ルーム公開チェック
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbxIxTmMa6VdE1uvKeXOWyYrBIk4a5eDBvZjQYCt_HDEsF0z2fxmu6JBhMHB4g4c4v-S/exec'; // ←あなたのURLに差し替え
     const currentRoomId = 'room1';
-
-    async function checkRoomAvailability() {
+  /**
+   * Google Sheetsからルームデータを取得（3回まで再試行）
+   */
+  async function fetchWithRetry(url, retries = 3, delay = 1000) {
+    for (let i = 0; i < retries; i++) {
       try {
-        const res = await fetch(scriptUrl);
-        const rooms = await res.json();
-        const room = rooms.find(r => r.roomId === currentRoomId);
-
-        if (!room) {
-          alert('この部屋の情報が見つかりません。');
-          window.location.href = '../index.html';
-          return;
-        }
-
-        const now = new Date();
-        const start = new Date(room.startDate);
-        const end = new Date(room.endDate);
-
-        if (now < start || now > end) {
-          alert(`この展示は現在公開されていません。\n公開期間：${room.startDate} ～ ${room.endDate}`);
-          window.location.href = '../index.html';
-          return;
-        }
-      } catch (error) {
-        console.error('ルーム情報の取得に失敗しました:', error);
-        alert('展示情報の取得に失敗しました。');
-        window.location.href = '../index.html';
+        const fullUrl = `${url}?t=${Date.now()}`; // キャッシュ回避
+        const res = await fetch(fullUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        if (!Array.isArray(json)) throw new Error("JSON形式が不正です");
+        return json;
+      } catch (e) {
+        console.warn(`Fetch失敗 (${i + 1}/${retries}) 回目:`, e.message);
+        if (i < retries - 1) await new Promise(r => setTimeout(r, delay));
       }
     }
+    throw new Error('ルーム情報の取得に繰り返し失敗しました');
+  }
+  
+  /**
+   * 現在の日付が有効期間内かをチェック
+   */
+  async function checkRoomAvailability() {
+    try {
+      const rooms = await fetchWithRetry(scriptUrl);
+      const room = rooms.find(r => r.roomId === currentRoomId);
+  
+      if (!room) {
+        alert('この部屋の情報が見つかりません。');
+        window.location.href = '../index.html';
+        return;
+      }
+  
+      const now = new Date();
+      const start = new Date(room.startDate);
+      const end = new Date(room.endDate);
+  
+      if (isNaN(start) || isNaN(end)) {
+        alert('日付データが不正です。');
+        window.location.href = '../index.html';
+        return;
+      }
+  
+      if (now < start || now > end) {
+        alert(`この展示は公開期間外です。\n公開期間：${room.startDate} ～ ${room.endDate}`);
+        window.location.href = '../../index.html';
+        return;
+      }
+  
+      // OK：続行
+      console.log(`[${currentRoomId}] 公開中。表示を続行します。`);
+  
+    } catch (error) {
+      console.error('checkRoomAvailability(): エラー発生', error);
+      alert('展示情報の取得に失敗しました。時間をおいて再試行してください。');
+      window.location.href = '../../index.html';
+    }
+  }
+
 
     await checkRoomAvailability();
 
