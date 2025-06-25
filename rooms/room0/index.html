@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Room 1 Gallery</title>
+  <title>Room 0 Gallery</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
@@ -89,9 +89,9 @@
 
 <body>
   <div id="titleBar" data-height="60">
-    <a id="prevRoom" href="../room0/index.html">&lt; 前の部屋</a>
+    <a id="prevRoom" href="../room2/index.html">&lt; 前の部屋</a>
     <div id="titleText">読み込み中...</div>
-    <a id="nextRoom" href="../room2/index.html">次の部屋 &gt;</a>
+    <a id="nextRoom" href="../room1/index.html">次の部屋 &gt;</a>
   </div>
 
   <script type="module">
@@ -126,8 +126,8 @@
     */
 
     // タイトルを固定表示に切り替え
-    document.getElementById('titleText').textContent = 'Room 1 Gallery';
-    document.title = 'Room 1 Gallery';
+    document.getElementById('titleText').textContent = 'Room 0 Gallery';
+    document.title = 'Room 0 Gallery';
 
     import { loadConfig } from '../../js/configLoader.js';
     import { initGallery } from '../../js/gallery.js';
