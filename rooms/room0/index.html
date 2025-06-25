@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Room 0 Gallery</title>
+  <title>Room Gallery</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
@@ -106,51 +106,59 @@
   </div>
 
   <script type="module">
-    import { loadConfig } from '../../js/configLoader.js';
     import { initGallery } from '../../js/gallery.js';
 
     const roomPath = './';
 
-    Promise.all([
-      loadConfig(`${roomPath}config.json`),
-      fetch(`${roomPath}images.json`).then(r => r.json())
-    ]).then(([config, images]) => {
-      const title = config.roomTitle || 'Untitled Room';
-      document.getElementById('titleText').textContent = title;
-      document.title = title;
+    fetch(`${roomPath}RoomConfig.json`)
+      .then(res => res.json())
+      .then(data => {
+        const title = data.roomTitle || 'Untitled Room';
+        document.getElementById('titleText').textContent = title;
+        document.title = title;
 
-      // 日付範囲チェック
-      const now = new Date();
-      const start = config.startDate ? new Date(config.startDate) : null;
-      const end = config.endDate ? new Date(config.endDate) : null;
+        const now = new Date();
+        const start = data.startDate ? new Date(data.startDate) : null;
+        const end = data.endDate ? new Date(data.endDate) : null;
+        const inPeriod =
+          (!start || now >= start) &&
+          (!end || now <= end);
 
-      const inPeriod =
-        (!start || now >= start) &&
-        (!end || now <= end);
+        if (!inPeriod) {
+          const message = document.createElement('div');
+          message.className = 'message';
 
-      if (inPeriod) {
-        initGallery(images, config, `${roomPath}images/`);
-      } else {
-        const message = document.createElement('div');
-        message.className = 'message';
+          if (start && now < start) {
+            message.textContent = 'このギャラリーはまだ公開されていません。';
+          } else if (end && now > end) {
+            message.textContent = 'このギャラリーの展示期間は終了しました。';
+          } else {
+            message.textContent = '現在このギャラリーは非公開です。';
+          }
 
-        if (start && now < start) {
-          message.textContent = 'このギャラリーはまだ公開されていません。';
-        } else if (end && now > end) {
-          message.textContent = 'このギャラリーの展示期間は終了しました。';
-        } else {
-          message.textContent = '現在このギャラリーは非公開です。';
+          document.body.appendChild(message);
+          return;
         }
 
+        // 必要な情報だけを取り出して config オブジェクトに渡す
+        const config = {
+          wallWidth: data.wallWidth,
+          wallHeight: data.wallHeight,
+          fixedLongSide: data.fixedLongSide,
+          backgroundColor: data.backgroundColor,
+          texturePaths: data.texturePaths,
+          roomTitle: data.roomTitle
+        };
+
+        initGallery(data.images, config, `${roomPath}images/`);
+      })
+      .catch(err => {
+        console.error('RoomConfig.json の読み込みエラー:', err);
+        const message = document.createElement('div');
+        message.className = 'message';
+        message.textContent = 'ギャラリー情報の読み込みに失敗しました。';
         document.body.appendChild(message);
-      }
-    }).catch(err => {
-      console.error('設定または画像の読み込みエラー:', err);
-      const message = document.createElement('div');
-      message.className = 'message';
-      message.textContent = 'ギャラリー情報の読み込みに失敗しました。';
-      document.body.appendChild(message);
-    });
+      });
   </script>
 </body>
 </html>
