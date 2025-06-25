@@ -75,6 +75,17 @@
       z-index: 0;
       display: block;
     }
+
+    .message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #ccc;
+      font-size: 1.5rem;
+      text-align: center;
+      z-index: 200;
+    }
   </style>
 
   <script type="importmap">
@@ -104,13 +115,41 @@
       loadConfig(`${roomPath}config.json`),
       fetch(`${roomPath}images.json`).then(r => r.json())
     ]).then(([config, images]) => {
-      // タイトルをconfigから設定
       const title = config.roomTitle || 'Untitled Room';
       document.getElementById('titleText').textContent = title;
       document.title = title;
 
-      // ギャラリーの初期化
-      initGallery(images, config, `${roomPath}images/`);
+      // 日付範囲チェック
+      const now = new Date();
+      const start = config.startDate ? new Date(config.startDate) : null;
+      const end = config.endDate ? new Date(config.endDate) : null;
+
+      const inPeriod =
+        (!start || now >= start) &&
+        (!end || now <= end);
+
+      if (inPeriod) {
+        initGallery(images, config, `${roomPath}images/`);
+      } else {
+        const message = document.createElement('div');
+        message.className = 'message';
+
+        if (start && now < start) {
+          message.textContent = 'このギャラリーはまだ公開されていません。';
+        } else if (end && now > end) {
+          message.textContent = 'このギャラリーの展示期間は終了しました。';
+        } else {
+          message.textContent = '現在このギャラリーは非公開です。';
+        }
+
+        document.body.appendChild(message);
+      }
+    }).catch(err => {
+      console.error('設定または画像の読み込みエラー:', err);
+      const message = document.createElement('div');
+      message.className = 'message';
+      message.textContent = 'ギャラリー情報の読み込みに失敗しました。';
+      document.body.appendChild(message);
     });
   </script>
 </body>
