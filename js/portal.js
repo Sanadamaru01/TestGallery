@@ -1,4 +1,4 @@
-const rooms = ['room1', 'room2', 'room3']; // 対応するルームIDを必要に応じて増やす
+const rooms = ['room0', 'room1', 'room2']; // 対応するルームIDを必要に応じて増やす
 const now = new Date();
 
 async function loadRoomConfig(roomId) {
