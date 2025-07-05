@@ -89,6 +89,24 @@ export function initGallery(imageFiles, config, imageBasePath) {
 
     renderer.render(scene, camera);
   }
+    // --- ドア・パネルのクリック処理 ---
+  window.addEventListener('click', (event) => {
+    const mouse = new THREE.Vector2(
+      (event.clientX / window.innerWidth) * 2 - 1,
+      - (event.clientY / getViewportHeightMinusHeader()) * 2 + 1
+    );
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(scene.userData.clickablePanels || []);
+    if (intersects.length > 0) {
+      const clicked = intersects[0].object;
+      if (clicked.userData && typeof clicked.userData.onClick === 'function') {
+        clicked.userData.onClick();
+      }
+    }
+  });
 
   animate();
 }
