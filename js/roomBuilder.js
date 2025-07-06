@@ -104,9 +104,15 @@ export function buildRoom(scene, config) {
         };
         scene.add(door);
         scene.userData.clickablePanels.push(door);
+  
+        // 枠の追加
+        addDoorFrame(scene, doorWidth, doorHeight, w);
+  
+        // ノブの追加
+        addDoorKnob(scene, doorWidth, doorHeight, w);
       },
       undefined,
-      // ロード失敗時：白で作る
+      // ロード失敗時：枠とノブも含めて茶色ドアで作成
       () => {
         const fallbackMat = new THREE.MeshBasicMaterial({
           color: 0xCD853F,
@@ -120,10 +126,13 @@ export function buildRoom(scene, config) {
         };
         scene.add(door);
         scene.userData.clickablePanels.push(door);
+  
+        addDoorFrame(scene, doorWidth, doorHeight, w);
+        addDoorKnob(scene, doorWidth, doorHeight, w);
       }
     );
   } else {
-    // テクスチャ指定が無い：すぐに白で作る
+    // テクスチャ指定が無い：すぐに枠とノブ付きで茶色ドア作成
     doorMaterial = new THREE.MeshBasicMaterial({
       color: 0xCD853F,
       side: THREE.DoubleSide
@@ -137,6 +146,48 @@ export function buildRoom(scene, config) {
     };
     scene.add(door);
     scene.userData.clickablePanels.push(door);
+  
+    addDoorFrame(scene, doorWidth, doorHeight, w);
+    addDoorKnob(scene, doorWidth, doorHeight, w);
+  }
+  
+  // ドアの枠を追加する関数
+  function addDoorFrame(scene, doorWidth, doorHeight, w) {
+    const frameMaterial = new THREE.MeshBasicMaterial({ color: 0x654321 }); // 濃い茶色
+    const frameThickness = 0.05;
+  
+    // 左枠
+    const leftFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(frameThickness, doorHeight, 0.01),
+      frameMaterial
+    );
+    leftFrame.position.set(-doorWidth / 2 + frameThickness / 2, doorHeight / 2, -w + 0.06);
+    scene.add(leftFrame);
+  
+    // 右枠
+    const rightFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(frameThickness, doorHeight, 0.01),
+      frameMaterial
+    );
+    rightFrame.position.set(doorWidth / 2 - frameThickness / 2, doorHeight / 2, -w + 0.06);
+    scene.add(rightFrame);
+  
+    // 上枠
+    const topFrame = new THREE.Mesh(
+      new THREE.BoxGeometry(doorWidth, frameThickness, 0.01),
+      frameMaterial
+    );
+    topFrame.position.set(0, doorHeight - frameThickness / 2, -w + 0.06);
+    scene.add(topFrame);
+  }
+  
+  // ドアのノブを追加する関数
+  function addDoorKnob(scene, doorWidth, doorHeight, w) {
+    const knobGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+    const knobMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const knob = new THREE.Mesh(knobGeometry, knobMaterial);
+    knob.position.set(doorWidth / 2 - 0.3, doorHeight / 2, -w + 0.1);
+    scene.add(knob);
   }
   // ============================================
 
