@@ -9,7 +9,7 @@
   "texturePaths": {
     "wall": "./textures/Wall.jpg",
     "floor": "./textures/Floor.jpg",
-    "ceiling": "./textures/Ceiling.jpg"
+    "ceiling": "./textures/Ceiling.jpg",
     "Door": "./textures/Door.jpg"
   },
   "images": [
