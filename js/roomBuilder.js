@@ -79,46 +79,31 @@ export function buildRoom(scene, config) {
   // ===== 出口ドアを追加（back 壁中央） =====
   const doorWidth = 2;
   const doorHeight = 3;
-  
-  // テクスチャを試しに読み込み
-  let doorTexture = null;
-  try {
-    doorTexture = texturePaths?.door
-      ? textureLoader.load(texturePaths.door)
-      : null;
-  
-    if (doorTexture) {
-      doorTexture.wrapS = doorTexture.wrapT = THREE.ClampToEdgeWrapping;
-      doorTexture.encoding = THREE.sRGBEncoding;
-    }
-  } catch (e) {
-    console.warn('ドアテクスチャの読み込みに失敗:', e);
-    doorTexture = null;
+  const doorTexPath = texturePaths?.Door;
+  const doorTexture = doorTexPath ? textureLoader.load(doorTexPath) : null;
+  if (doorTexture) {
+    doorTexture.wrapS = doorTexture.wrapT = THREE.ClampToEdgeWrapping;
+    doorTexture.encoding = THREE.sRGBEncoding;
   }
   
-  // doorMaterial：テクスチャがあればそれを、なければ白で描画
   const doorMaterial = new THREE.MeshBasicMaterial({
     map: doorTexture || null,
-    color: doorTexture ? undefined : 0x555555,
+    color: doorTexture ? undefined : 0x8b5e3c, // テクスチャがない場合は茶色
     side: THREE.DoubleSide
   });
   
-  // ドアメッシュを作成
   const door = new THREE.Mesh(
     new THREE.PlaneGeometry(doorWidth, doorHeight),
     doorMaterial
   );
-  door.position.set(0, doorHeight / 2, -WALL_WIDTH / 2 + 1.01); // 少し手前に出す
-  door.rotation.y = Math.PI; // Z方向へ向ける
+  door.position.set(0, doorHeight / 2, -w + 1.01); // back壁中央、少し前に出す
+  door.rotation.y = Math.PI;
   
-  // クリックでトップへ遷移
   door.userData.onClick = () => {
-    window.location.href = '../../index.html';
+    window.location.href = '../../index.html'; // トップへ戻る
   };
   
   scene.add(door);
-  
-  // clickable パネルに登録
   if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
   scene.userData.clickablePanels.push(door);
   // ============================================
