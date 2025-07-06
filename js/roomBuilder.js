@@ -75,35 +75,38 @@ export function buildRoom(scene, config) {
   addWall(0, h, w, Math.PI);     // front
   addWall(-w, h, 0, Math.PI / 2); // right
   addWall(w, h, 0, -Math.PI / 2); // left
-  
+
   // ===== 出口ドアを追加（back 壁中央） =====
   const doorWidth = 2;
   const doorHeight = 3;
   const doorTexPath = texturePaths?.Door;
   const doorTexture = doorTexPath ? textureLoader.load(doorTexPath) : null;
+
   if (doorTexture) {
     doorTexture.wrapS = doorTexture.wrapT = THREE.ClampToEdgeWrapping;
     doorTexture.encoding = THREE.sRGBEncoding;
   }
-  
+
+  // ドアの色を白に固定（テクスチャなしの時も白）
   const doorMaterial = new THREE.MeshBasicMaterial({
     map: doorTexture || null,
-    color: doorTexture ? undefined : 0xffffff, // テクスチャがない場合は茶色
+    color: 0xffffff,
     side: THREE.DoubleSide
   });
-  
+
   const door = new THREE.Mesh(
     new THREE.PlaneGeometry(doorWidth, doorHeight),
     doorMaterial
   );
   door.position.set(0, doorHeight / 2, -w + 1.01); // back壁中央、少し前に出す
   door.rotation.y = Math.PI;
-  
+
   door.userData.onClick = () => {
     window.location.href = '../../index.html'; // トップへ戻る
   };
-  
+
   scene.add(door);
+
   if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
   scene.userData.clickablePanels.push(door);
   // ============================================
