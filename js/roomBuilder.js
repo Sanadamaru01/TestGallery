@@ -75,38 +75,53 @@ export function buildRoom(scene, config) {
   addWall(0, h, w, Math.PI);     // front
   addWall(-w, h, 0, Math.PI / 2); // right
   addWall(w, h, 0, -Math.PI / 2); // left
-
-// ===== 出口ドアを追加（back 壁中央） =====
-const doorWidth = 2;
-const doorHeight = 3;
-const doorTexture = textureLoader.load('/images/door.png'); // 任意画像、またはnullで色指定
-if (doorTexture) {
-  doorTexture.wrapS = doorTexture.wrapT = THREE.ClampToEdgeWrapping;
-  doorTexture.encoding = THREE.sRGBEncoding;
-}
-
-const doorMaterial = new THREE.MeshBasicMaterial({
-  map: doorTexture || null,
-  color: doorTexture ? undefined : 0xFFFFFF,
-  side: THREE.DoubleSide
-});
-
-const door = new THREE.Mesh(
-  new THREE.PlaneGeometry(doorWidth, doorHeight),
-  doorMaterial
-);
-door.position.set(0, doorHeight / 2, -w + 1.01); // back壁中央、少し前に出す
-door.rotation.y = Math.PI; // 180度回転（Z方向向きにする）
-
-door.userData.onClick = () => {
-  window.location.href = '../../index.html'; // トップへ戻る
-};
-
-scene.add(door);
-if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
-scene.userData.clickablePanels.push(door);
-// ============================================
-
+  
+  // ===== 出口ドアを追加（back 壁中央） =====
+  const doorWidth = 2;
+  const doorHeight = 3;
+  
+  // テクスチャを試しに読み込み
+  let doorTexture = null;
+  try {
+    doorTexture = texturePaths?.door
+      ? textureLoader.load(texturePaths.door)
+      : null;
+  
+    if (doorTexture) {
+      doorTexture.wrapS = doorTexture.wrapT = THREE.ClampToEdgeWrapping;
+      doorTexture.encoding = THREE.sRGBEncoding;
+    }
+  } catch (e) {
+    console.warn('ドアテクスチャの読み込みに失敗:', e);
+    doorTexture = null;
+  }
+  
+  // doorMaterial：テクスチャがあればそれを、なければ白で描画
+  const doorMaterial = new THREE.MeshBasicMaterial({
+    map: doorTexture || null,
+    color: doorTexture ? undefined : 0xFFFFFF,
+    side: THREE.DoubleSide
+  });
+  
+  // ドアメッシュを作成
+  const door = new THREE.Mesh(
+    new THREE.PlaneGeometry(doorWidth, doorHeight),
+    doorMaterial
+  );
+  door.position.set(0, doorHeight / 2, -WALL_WIDTH / 2 + 1.01); // 少し手前に出す
+  door.rotation.y = Math.PI; // Z方向へ向ける
+  
+  // クリックでトップへ遷移
+  door.userData.onClick = () => {
+    window.location.href = '../../index.html';
+  };
+  
+  scene.add(door);
+  
+  // clickable パネルに登録
+  if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
+  scene.userData.clickablePanels.push(door);
+  // ============================================
 
   return floor;
 }
