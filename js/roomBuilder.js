@@ -134,7 +134,7 @@ export function buildRoom(scene, config) {
     });
   
     const door = new THREE.Mesh(doorGeometry, doorMaterial);
-    door.position.set(0, doorHeight / 2, -w + 1.01);
+    door.position.set(0, doorHeight / 2, -w + 0.01);
     door.rotation.y = Math.PI;
     door.userData.onClick = () => {
       window.location.href = '../../index.html';
