@@ -80,44 +80,70 @@ export function buildRoom(scene, config) {
   const doorWidth = 2;
   const doorHeight = 3;
   const doorTexPath = texturePaths?.Door;
-  
-  let doorTexture = null;
-  if (doorTexPath) {
-    doorTexture = textureLoader.load(doorTexPath, (tex) => {
-      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-      tex.encoding = THREE.sRGBEncoding;
-    });
-  }
-  
+  const doorGeometry = new THREE.PlaneGeometry(doorWidth, doorHeight);
   let doorMaterial;
   
-  if (doorTexture) {
-    doorMaterial = new THREE.MeshBasicMaterial({
-      map: doorTexture,
-      side: THREE.DoubleSide
-    });
+  if (doorTexPath) {
+    // テクスチャあり：ロード完了後にドア追加
+    textureLoader.load(
+      doorTexPath,
+      (tex) => {
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.encoding = THREE.sRGBEncoding;
+  
+        doorMaterial = new THREE.MeshBasicMaterial({
+          map: tex,
+          side: THREE.DoubleSide
+        });
+  
+        const door = new THREE.Mesh(doorGeometry, doorMaterial);
+        door.position.set(0, doorHeight / 2, -w + 1.01);
+        door.rotation.y = Math.PI;
+        door.userData.onClick = () => {
+          window.location.href = '../../index.html';
+        };
+        scene.add(door);
+  
+        if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
+        scene.userData.clickablePanels.push(door);
+      },
+      undefined,
+      // ロード失敗時：白で作る
+      () => {
+        const fallbackMat = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          side: THREE.DoubleSide
+        });
+        const door = new THREE.Mesh(doorGeometry, fallbackMat);
+        door.position.set(0, doorHeight / 2, -w + 1.01);
+        door.rotation.y = Math.PI;
+        door.userData.onClick = () => {
+          window.location.href = '../../index.html';
+        };
+        scene.add(door);
+  
+        if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
+        scene.userData.clickablePanels.push(door);
+      }
+    );
   } else {
+    // テクスチャ指定が無い：すぐに白で作る
     doorMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff, // テクスチャがない場合は白
+      color: 0xffffff,
       side: THREE.DoubleSide
     });
+  
+    const door = new THREE.Mesh(doorGeometry, doorMaterial);
+    door.position.set(0, doorHeight / 2, -w + 1.01);
+    door.rotation.y = Math.PI;
+    door.userData.onClick = () => {
+      window.location.href = '../../index.html';
+    };
+    scene.add(door);
+  
+    if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
+    scene.userData.clickablePanels.push(door);
   }
-  
-  const door = new THREE.Mesh(
-    new THREE.PlaneGeometry(doorWidth, doorHeight),
-    doorMaterial
-  );
-  door.position.set(0, doorHeight / 2, -w + 1.01);
-  door.rotation.y = Math.PI;
-  
-  door.userData.onClick = () => {
-    window.location.href = '../../index.html'; // トップへ戻る
-  };
-  
-  scene.add(door);
-  
-  if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
-  scene.userData.clickablePanels.push(door);
   // ============================================
 
   return floor;
