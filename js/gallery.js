@@ -35,6 +35,9 @@ export function initGallery(imageFiles, config, imageBasePath) {
   document.body.appendChild(renderer.domElement);
 
   // 部屋（床・壁）構築
+  scene.userData.clickablePanels = [];  // ←★ 追加（これが重要）
+  const floor = buildRoom(scene, config);
+
   const floor = buildRoom(scene, config);
 
   // 照明
