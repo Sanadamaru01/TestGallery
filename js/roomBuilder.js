@@ -80,33 +80,42 @@ export function buildRoom(scene, config) {
   const doorWidth = 2;
   const doorHeight = 3;
   const doorTexPath = texturePaths?.Door;
-  const doorTexture = doorTexPath ? textureLoader.load(doorTexPath) : null;
-
-  if (doorTexture) {
-    doorTexture.wrapS = doorTexture.wrapT = THREE.ClampToEdgeWrapping;
-    doorTexture.encoding = THREE.sRGBEncoding;
+  
+  let doorTexture = null;
+  if (doorTexPath) {
+    doorTexture = textureLoader.load(doorTexPath, (tex) => {
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.encoding = THREE.sRGBEncoding;
+    });
   }
-
-  // ドアの色を白に固定（テクスチャなしの時も白）
-  const doorMaterial = new THREE.MeshBasicMaterial({
-    map: doorTexture || null,
-    color: 0xffffff,
-    side: THREE.DoubleSide
-  });
-
+  
+  let doorMaterial;
+  
+  if (doorTexture) {
+    doorMaterial = new THREE.MeshBasicMaterial({
+      map: doorTexture,
+      side: THREE.DoubleSide
+    });
+  } else {
+    doorMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff, // テクスチャがない場合は白
+      side: THREE.DoubleSide
+    });
+  }
+  
   const door = new THREE.Mesh(
     new THREE.PlaneGeometry(doorWidth, doorHeight),
     doorMaterial
   );
-  door.position.set(0, doorHeight / 2, -w + 1.01); // back壁中央、少し前に出す
+  door.position.set(0, doorHeight / 2, -w + 1.01);
   door.rotation.y = Math.PI;
-
+  
   door.userData.onClick = () => {
     window.location.href = '../../index.html'; // トップへ戻る
   };
-
+  
   scene.add(door);
-
+  
   if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
   scene.userData.clickablePanels.push(door);
   // ============================================
