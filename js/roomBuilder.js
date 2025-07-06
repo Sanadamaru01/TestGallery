@@ -103,8 +103,6 @@ export function buildRoom(scene, config) {
           window.location.href = '../../index.html';
         };
         scene.add(door);
-  
-        if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
         scene.userData.clickablePanels.push(door);
       },
       undefined,
@@ -121,8 +119,6 @@ export function buildRoom(scene, config) {
           window.location.href = '../../index.html';
         };
         scene.add(door);
-  
-        if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
         scene.userData.clickablePanels.push(door);
       }
     );
@@ -140,8 +136,6 @@ export function buildRoom(scene, config) {
       window.location.href = '../../index.html';
     };
     scene.add(door);
-  
-    if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
     scene.userData.clickablePanels.push(door);
   }
   // ============================================
