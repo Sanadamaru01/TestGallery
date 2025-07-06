@@ -76,27 +76,35 @@ export function buildRoom(scene, config) {
   addWall(-w, h, 0, Math.PI / 2); // right
   addWall(w, h, 0, -Math.PI / 2); // left
 
-  // ===== 出口ドアを追加（back 壁中央） =====
-  const doorWidth = 2;
-  const doorHeight = 3;
-  const doorTexture = textureLoader.load('/images/door.png'); // 任意画像、またはnullで色指定
-  const doorMaterial = doorTexture
-    ? new THREE.MeshBasicMaterial({ map: doorTexture, side: THREE.DoubleSide })
-    : new THREE.MeshBasicMaterial({ color: 0x555555, side: THREE.DoubleSide });
+// ===== 出口ドアを追加（back 壁中央） =====
+const doorWidth = 2;
+const doorHeight = 3;
+const doorTexture = textureLoader.load('/images/door.png'); // 任意画像、またはnullで色指定
+if (doorTexture) {
+  doorTexture.wrapS = doorTexture.wrapT = THREE.ClampToEdgeWrapping;
+  doorTexture.encoding = THREE.sRGBEncoding;
+}
 
-  const door = new THREE.Mesh(
-    new THREE.PlaneGeometry(doorWidth, doorHeight),
-    doorMaterial
-  );
-  door.position.set(0, doorHeight / 2, -w + 0.01); // back壁中央、少し前に出す
-  door.userData.onClick = () => {
-    window.location.href = '../../index.html'; // トップへ戻る
-  };
+const doorMaterial = new THREE.MeshBasicMaterial({
+  map: doorTexture || null,
+  color: doorTexture ? undefined : 0x555555,
+  side: THREE.DoubleSide
+});
 
-  scene.add(door);
-  if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
-  scene.userData.clickablePanels.push(door);
-  // ============================================
+const door = new THREE.Mesh(
+  new THREE.PlaneGeometry(doorWidth, doorHeight),
+  doorMaterial
+);
+door.position.set(0, doorHeight / 2, -w + 0.01); // back壁中央、少し前に出す
+door.userData.onClick = () => {
+  window.location.href = '../../index.html'; // トップへ戻る
+};
+
+scene.add(door);
+if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
+scene.userData.clickablePanels.push(door);
+// ============================================
+
 
   return floor;
 }
