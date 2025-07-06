@@ -111,7 +111,7 @@ export function buildRoom(scene, config) {
       // ロード失敗時：白で作る
       () => {
         const fallbackMat = new THREE.MeshBasicMaterial({
-          color: 0x8B4513,
+          color: 0xCD853F,
           side: THREE.DoubleSide
         });
         const door = new THREE.Mesh(doorGeometry, fallbackMat);
@@ -129,7 +129,7 @@ export function buildRoom(scene, config) {
   } else {
     // テクスチャ指定が無い：すぐに白で作る
     doorMaterial = new THREE.MeshBasicMaterial({
-      color: 0x8B4513,
+      color: 0xCD853F,
       side: THREE.DoubleSide
     });
   
