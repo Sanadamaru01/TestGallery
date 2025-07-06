@@ -95,7 +95,7 @@ const door = new THREE.Mesh(
   new THREE.PlaneGeometry(doorWidth, doorHeight),
   doorMaterial
 );
-door.position.set(0, doorHeight / 2, -w + 0.01); // back壁中央、少し前に出す
+door.position.set(0, doorHeight / 2, -w + 1.01); // back壁中央、少し前に出す
 door.rotation.y = Math.PI; // 180度回転（Z方向向きにする）
 
 door.userData.onClick = () => {
