@@ -88,7 +88,7 @@ export function buildRoom(scene, config) {
   
   const doorMaterial = new THREE.MeshBasicMaterial({
     map: doorTexture || null,
-    color: doorTexture ? undefined : 0x8b5e3c, // テクスチャがない場合は茶色
+    color: doorTexture ? undefined : 0xffffff, // テクスチャがない場合は茶色
     side: THREE.DoubleSide
   });
   
