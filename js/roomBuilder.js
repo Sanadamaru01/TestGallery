@@ -87,7 +87,7 @@ if (doorTexture) {
 
 const doorMaterial = new THREE.MeshBasicMaterial({
   map: doorTexture || null,
-  color: doorTexture ? undefined : 0x555555,
+  color: doorTexture ? undefined : 0xFFFFFF,
   side: THREE.DoubleSide
 });
 
