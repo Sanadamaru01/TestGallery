@@ -38,8 +38,6 @@ export function initGallery(imageFiles, config, imageBasePath) {
   scene.userData.clickablePanels = [];  // ←★ 追加（これが重要）
   const floor = buildRoom(scene, config);
 
-  const floor = buildRoom(scene, config);
-
   // 照明
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
   const ambientLight = new THREE.AmbientLight(0x888888, 0.5);
