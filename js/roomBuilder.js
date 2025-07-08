@@ -70,6 +70,14 @@ export async function buildRoom(scene, config) {
     }
     scene.userData.clickablePanels.push(door);
 
+    // 👉 ドアノブを追加（筒状）
+    const knobGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.2, 16);
+    const knobMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const knob = new THREE.Mesh(knobGeo, knobMat);
+    knob.rotation.z = Math.PI / 2; // 横向きに倒す
+    knob.position.set(-doorWidth / 2 + 0.25, doorY, doorZ + 0.06);
+    scene.add(knob);
+
     return door;
   };
 
