@@ -13,12 +13,12 @@ export function initGallery(imageFiles, config, imageBasePath) {
 
   const titleBar = document.getElementById('titleBar');
   const HEADER_HEIGHT = titleBar ? parseInt(titleBar.dataset.height || '60', 10) : 60;
-  const GALLERY_HEIGHT = WALL_HEIGHT / 2;
+  const GALLERY_HEIGHT = wallHeight / 2;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(backgroundColor);
   scene.userData.wallWidth = WALL_WIDTH;
-  scene.userData.clickablePanels = []; // クリック対象初期化
+  scene.userData.clickablePanels = [];
 
   const camera = new THREE.PerspectiveCamera(
     75,
@@ -34,34 +34,36 @@ export function initGallery(imageFiles, config, imageBasePath) {
   renderer.outputEncoding = THREE.sRGBEncoding;
   document.body.appendChild(renderer.domElement);
 
-  // 部屋とドア構築
-  const { floor, door } = buildRoom(scene, config);
+  // --- 部屋とオブジェクト構築（ドアやテストボックスを含む） ---
+  const { floor, door, testBox } = buildRoom(scene, config);
 
-  // ドアクリック処理をここで設定
-  door.userData = {
-    onClick: () => {
-      window.location.href = '../../index.html';
-    }
+  // --- クリックイベントの登録 ---
+  door.userData.onClick = () => {
+    console.log('[クリック] ドアがクリックされました');
+    window.location.href = '../../index.html';
   };
-  scene.userData.clickablePanels.push(door);
 
-console.log('クリック対象リスト:', scene.userData.clickablePanels);
-console.log('ドアは含まれているか？', scene.userData.clickablePanels.includes(door));
-  
-  // 照明
+  testBox.userData.onClick = () => {
+    console.log('[クリック] テストボックスがクリックされました');
+  };
+
+  scene.userData.clickablePanels.push(door, testBox);
+
+  // --- 照明 ---
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
   const ambientLight = new THREE.AmbientLight(0x888888, 0.5);
   scene.add(light, light.target, ambientLight);
   const lightOffset = new THREE.Vector3(0, 10, 7.5);
 
-  // カメラコントロール
+  // --- カメラコントロール ---
   const { controls, animateCamera } = setupCameraControls(
     camera, renderer, GALLERY_HEIGHT, floor, scene
   );
 
-  // 画像読み込み・配置
-  loadImages(scene, imageFiles, WALL_WIDTH, WALL_HEIGHT, fixedLongSide, imageBasePath);
+  // --- 画像読み込み ---
+  loadImages(scene, imageFiles, WALL_WIDTH, wallHeight, fixedLongSide, imageBasePath);
 
+  // --- リサイズ処理 ---
   function getViewportHeight() {
     return document.documentElement.clientHeight;
   }
@@ -78,11 +80,13 @@ console.log('ドアは含まれているか？', scene.userData.clickablePanels.
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
   }
+
   window.addEventListener('resize', () => {
     setTimeout(onWindowResize, 100);
   });
   onWindowResize();
 
+  // --- アニメーションループ ---
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
@@ -94,28 +98,24 @@ console.log('ドアは含まれているか？', scene.userData.clickablePanels.
     renderer.render(scene, camera);
   }
 
-// ...前略...
-
+  // --- クリック判定処理 ---
   window.addEventListener('click', (event) => {
     const mouse = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,
-      - (event.clientY / getViewportHeightMinusHeader()) * 2 + 1
+      -(event.clientY / getViewportHeightMinusHeader()) * 2 + 1
     );
-
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-
     const intersects = raycaster.intersectObjects(scene.userData.clickablePanels || []);
-    console.log('クリック判定: ', intersects.length, '件');
+    console.log('クリック対象数:', intersects.length);
 
     if (intersects.length > 0) {
       const clicked = intersects[0].object;
-      console.log('クリック対象: ', clicked.name || clicked.uuid);
+      console.log('クリック対象:', clicked.name || clicked.uuid);
       if (clicked.userData && typeof clicked.userData.onClick === 'function') {
-        console.log('onClick 実行');
         clicked.userData.onClick();
       } else {
-        console.log('onClick が未定義です');
+        console.log('onClick は未定義です');
       }
     } else {
       console.log('何もヒットしませんでした');
