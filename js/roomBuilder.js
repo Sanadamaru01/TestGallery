@@ -59,55 +59,56 @@ export function buildRoom(scene, config) {
   ceiling.position.y = WALL_HEIGHT;
   scene.add(ceiling);
 
-  // 壁
+  // 壁共通ジオメトリ
   const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, WALL_HEIGHT);
   const h = WALL_HEIGHT / 2, w = WALL_WIDTH / 2;
+
   const addWall = (x, y, z, ry) => {
     const wall = new THREE.Mesh(wallGeo, wallMat);
     wall.position.set(x, y, z);
     wall.rotation.y = ry;
     scene.add(wall);
   };
-  addWall(0, h, -w, 0);
-  addWall(0, h, w, Math.PI);
-  addWall(-w, h, 0, Math.PI / 2);
-  addWall(w, h, 0, -Math.PI / 2);
 
-  // ドア
+  // 各壁を追加
+  addWall(0, h, -w, 0);            // back
+  addWall(0, h, w, Math.PI);       // front
+  addWall(-w, h, 0, Math.PI / 2);  // right
+  addWall(w, h, 0, -Math.PI / 2);  // left
+
+  // --- ドア追加 ---
   const doorWidth = 2;
   const doorHeight = 3;
-  const doorZ = -w + 0.01;
+  const doorDepth = 0.1;
+  const doorZ = -w + doorDepth / 2;
   const doorY = doorHeight / 2;
+  const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
   const doorTexPath = texturePaths?.Door;
-  const doorGeo = new THREE.PlaneGeometry(doorWidth, doorHeight);
 
   const addDoor = (material) => {
-    const door = new THREE.Mesh(
-      new THREE.PlaneGeometry(doorWidth, doorHeight),
-      material
-    );
+    // ドア本体
+    const door = new THREE.Mesh(doorGeometry, material);
     door.position.set(0, doorY, doorZ);
     door.rotation.y = Math.PI;
     scene.add(door);
-  
-    // 🔽 クリック専用の透明パネルを追加（Raycasterのターゲット）
+
+    // クリックパネル（少し前に出して確実に反応）
     const clickPanel = new THREE.Mesh(
       new THREE.PlaneGeometry(doorWidth, doorHeight),
       new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide })
     );
-    clickPanel.position.set(0, doorY, doorZ + 0.05); // ドアより手前
+    clickPanel.position.set(0, doorY, doorZ + 0.05);
     clickPanel.rotation.y = Math.PI;
     clickPanel.userData.onClick = () => {
       window.location.href = '../../index.html';
     };
     scene.add(clickPanel);
-  
+
     if (!scene.userData.clickablePanels) {
       scene.userData.clickablePanels = [];
     }
     scene.userData.clickablePanels.push(clickPanel);
-  
-    addDoorFrame(scene, doorWidth, doorHeight, doorZ);
+
     addDoorKnob(scene, doorWidth, doorHeight, doorZ);
   };
 
@@ -134,27 +135,7 @@ export function buildRoom(scene, config) {
   return floor;
 }
 
-// ドア枠
-function addDoorFrame(scene, width, height, z) {
-  const frameColor = 0x3b2f2f;
-  const frameMat = new THREE.MeshStandardMaterial({ color: frameColor });
-  const t = 0.08;
-  const d = 0.02;
-
-  const left = new THREE.Mesh(new THREE.BoxGeometry(t, height + t * 2, d), frameMat);
-  left.position.set(-width / 2 - t / 2, height / 2, z);
-  scene.add(left);
-
-  const right = new THREE.Mesh(new THREE.BoxGeometry(t, height + t * 2, d), frameMat);
-  right.position.set(width / 2 + t / 2, height / 2, z);
-  scene.add(right);
-
-  const top = new THREE.Mesh(new THREE.BoxGeometry(width + t * 2, t, d), frameMat);
-  top.position.set(0, height + t / 2, z);
-  scene.add(top);
-}
-
-// ドアノブ
+// --- ドアノブのみ ---
 function addDoorKnob(scene, width, height, z) {
   const knobGeo = new THREE.SphereGeometry(0.08, 16, 16);
   const knobMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
