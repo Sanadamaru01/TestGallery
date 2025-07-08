@@ -67,7 +67,6 @@ export function buildRoom(scene, config) {
 
   const door = new THREE.Mesh(doorGeo, doorMat);
   door.position.set(0, doorY, doorZ);
-  door.rotation.y = Math.PI;
   scene.add(door);
 
   // ドアノブ（見た目だけ）
