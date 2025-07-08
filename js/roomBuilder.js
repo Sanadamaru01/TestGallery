@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export function buildRoom(scene, config) {
+export async function buildRoom(scene, config) {
   const {
     wallWidth: WALL_WIDTH,
     wallHeight: WALL_HEIGHT,
@@ -50,23 +50,21 @@ export function buildRoom(scene, config) {
   addWall(-w, h, 0, Math.PI / 2); // right
   addWall(w, h, 0, -Math.PI / 2); // left
 
-  // --- ドア（Box） ---
+  // --- ドア ---
   const doorWidth = 2;
   const doorHeight = 3;
   const doorDepth = 0.1;
   const doorY = doorHeight / 2;
-  const doorZ = -w + doorDepth / 2 + 0.01; // 壁より少し前に出す
+  const doorZ = -w + doorDepth / 2 + 0.01;
 
   const doorGeo = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
 
-  // ドア用マテリアル作成関数
   const createDoor = (material) => {
     const door = new THREE.Mesh(doorGeo, material);
     door.name = 'Door';
     door.position.set(0, doorY, doorZ);
     scene.add(door);
 
-    // クリック対象登録
     if (!Array.isArray(scene.userData.clickablePanels)) {
       scene.userData.clickablePanels = [];
     }
@@ -76,28 +74,27 @@ export function buildRoom(scene, config) {
   };
 
   let door;
+  const fallbackMat = new THREE.MeshStandardMaterial({
+    color: 0xff0000,
+    opacity: 0.7,
+    transparent: true,
+    side: THREE.DoubleSide
+  });
 
   if (texturePaths?.Door) {
-    // ドアテクスチャを読み込み
-    textureLoader.load(
-      texturePaths.Door,
-      (tex) => {
-        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-        tex.encoding = THREE.sRGBEncoding;
-        const doorMat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide });
-        door = createDoor(doorMat);
-      },
-      undefined,
-      () => {
-        // 読み込み失敗時はカラーでフォールバック
-        const doorMat = new THREE.MeshStandardMaterial({ color: 0xff0000, opacity: 0.7, transparent: true, side: THREE.DoubleSide });
-        door = createDoor(doorMat);
-      }
-    );
+    try {
+      const tex = await new Promise((resolve, reject) => {
+        textureLoader.load(texturePaths.Door, resolve, undefined, reject);
+      });
+      tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+      tex.encoding = THREE.sRGBEncoding;
+      const mat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide });
+      door = createDoor(mat);
+    } catch {
+      door = createDoor(fallbackMat);
+    }
   } else {
-    // ドアテクスチャ指定なしの場合は赤の半透明ドア
-    const doorMat = new THREE.MeshStandardMaterial({ color: 0xff0000, opacity: 0.7, transparent: true, side: THREE.DoubleSide });
-    door = createDoor(doorMat);
+    door = createDoor(fallbackMat);
   }
 
   return { floor, door };
