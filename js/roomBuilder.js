@@ -86,31 +86,30 @@ export async function buildRoom(scene, config) {
     scene.add(knob);
 
     // --- ドア装飾バンド（透明な枠線） ---
-    function addDecorativeBand(yCenter) {
-      const bandWidth = doorWidth - 0.4;  // 左右端から0.2ずつ内側
-      const bandHeight = 0.4;             // 縦幅を抑えめに
-    
-      const shape = new THREE.Shape();
-      shape.moveTo(-bandWidth / 2, -bandHeight / 2);
-      shape.lineTo( bandWidth / 2, -bandHeight / 2);
-      shape.lineTo( bandWidth / 2,  bandHeight / 2);
-      shape.lineTo(-bandWidth / 2,  bandHeight / 2);
-      shape.lineTo(-bandWidth / 2, -bandHeight / 2); // 閉じる
-    
-      const geometry = new THREE.BufferGeometry().setFromPoints(shape.getPoints());
-      const material = new THREE.LineBasicMaterial({ color: 0x000000 });
-      const band = new THREE.LineLoop(geometry, material);
-      band.position.set(0, yCenter, doorDepth / 2 + 0.011); // ドア前面からわずかに浮かせる
-    
-      door.add(band);
-    }
-    
-    // 上：ドア上端から少し下（中央より上）
-    addDecorativeBand(doorHeight * 0.7);
-    
-    // 下：ドア下端から少し上（中央より下）
-    addDecorativeBand(doorHeight * 0.3);
+function addDecorativeBand(yCenter) {
+  const bandWidth = doorWidth - 0.4;  // 左右に余白0.2ずつ
+  const bandHeight = 0.4;
 
+  const shape = new THREE.Shape();
+  shape.moveTo(-bandWidth / 2, -bandHeight / 2);
+  shape.lineTo( bandWidth / 2, -bandHeight / 2);
+  shape.lineTo( bandWidth / 2,  bandHeight / 2);
+  shape.lineTo(-bandWidth / 2,  bandHeight / 2);
+  shape.lineTo(-bandWidth / 2, -bandHeight / 2);
+
+  const geometry = new THREE.BufferGeometry().setFromPoints(shape.getPoints());
+  const material = new THREE.LineBasicMaterial({ color: 0x000000 });
+  const band = new THREE.LineLoop(geometry, material);
+
+  band.position.set(0, yCenter, doorDepth / 2 + 0.011); // ドア面のちょっと前
+  door.add(band);
+}
+
+// --- 上バンド（ドア上端から少し下）
+addDecorativeBand(doorHeight / 2 - 0.3);
+
+// --- 下バンド（ドア下端から少し上）
+addDecorativeBand(-doorHeight / 2 + 0.3);
 
     // --- EXIT 看板（CanvasTexture） ---
     const canvas = document.createElement('canvas');
