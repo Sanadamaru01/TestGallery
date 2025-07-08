@@ -42,6 +42,14 @@ export async function initGallery(imageFiles, config, imageBasePath) {
     console.log('✅ ドアがクリックされました');
     window.location.href = '../../index.html';
   };
+  
+  // 🔁 子要素にもクリック処理を委譲
+  door.traverse((child) => {
+    if (child !== door) {
+      child.userData.onClick = door.userData.onClick;
+    }
+  });
+
 
   // 💡 照明
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
