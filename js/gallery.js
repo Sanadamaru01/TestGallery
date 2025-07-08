@@ -124,7 +124,7 @@ window.addEventListener('click', (event) => {
 
   console.log('ドアは含まれているか？', clickable.includes(door)); // ← ここも
 
-  const intersects = raycaster.intersectObjects(clickable);
+  const intersects = raycaster.intersectObjects(clickable, true);
 
   console.log(`【クリック判定結果】ヒット数: ${intersects.length}`);
 
