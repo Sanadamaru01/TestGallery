@@ -81,51 +81,47 @@ export function buildRoom(scene, config) {
   const doorHeight = 3;
   const doorDepth = 0.1;
   const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
-  const doorZ = -w + doorDepth / 2;
+  const doorZ = -w + doorDepth / 2 + 0.01; // 壁と干渉しないよう少し前
   const doorY = doorHeight / 2;
   const doorTexPath = texturePaths?.Door;
-  
+
   const addDoor = (material) => {
     const door = new THREE.Mesh(doorGeometry, material);
     door.position.set(0, doorY, doorZ);
-    door.rotation.y = Math.PI;
     door.userData.onClick = () => {
       window.location.href = '../../index.html';
     };
     scene.add(door);
-  
+
     if (!scene.userData.clickablePanels) {
       scene.userData.clickablePanels = [];
     }
     scene.userData.clickablePanels.push(door);
-  
+
     addDoorFrame(scene, doorWidth, doorHeight, doorZ);
     addDoorKnob(scene, doorWidth, doorHeight, doorZ);
   };
-  
+
   // --- ドア枠 ---
   function addDoorFrame(scene, width, height, z) {
     const frameColor = 0x3b2f2f;
     const frameMat = new THREE.MeshStandardMaterial({ color: frameColor });
     const t = 0.08;
     const d = 0.1;
-  
-    // 左柱
+
     const left = new THREE.Mesh(new THREE.BoxGeometry(t, height + t * 2, d), frameMat);
     left.position.set(-width / 2 - t / 2, height / 2, z);
     scene.add(left);
-  
-    // 右柱
+
     const right = new THREE.Mesh(new THREE.BoxGeometry(t, height + t * 2, d), frameMat);
     right.position.set(width / 2 + t / 2, height / 2, z);
     scene.add(right);
-  
-    // 上枠
+
     const top = new THREE.Mesh(new THREE.BoxGeometry(width + t * 2, t, d), frameMat);
     top.position.set(0, height + t / 2, z);
     scene.add(top);
   }
-  
+
   // --- ドアノブ ---
   function addDoorKnob(scene, width, height, z) {
     const knobGeo = new THREE.SphereGeometry(0.08, 16, 16);
@@ -134,4 +130,27 @@ export function buildRoom(scene, config) {
     knob.position.set(-width / 2 + 0.3, height / 2, z + 0.05);
     scene.add(knob);
   }
+
+  // テクスチャロードまたはデフォルトドア作成
+  if (doorTexPath) {
+    textureLoader.load(
+      doorTexPath,
+      (tex) => {
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.encoding = THREE.sRGBEncoding;
+        const mat = new THREE.MeshStandardMaterial({ map: tex });
+        addDoor(mat);
+      },
+      undefined,
+      () => {
+        const fallbackMat = new THREE.MeshStandardMaterial({ color: 0xCD853F });
+        addDoor(fallbackMat);
+      }
+    );
+  } else {
+    const defaultMat = new THREE.MeshStandardMaterial({ color: 0xCD853F });
+    addDoor(defaultMat);
+  }
+
+  return floor;
 }
