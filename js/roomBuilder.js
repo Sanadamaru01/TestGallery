@@ -71,7 +71,7 @@ export async function buildRoom(scene, config) {
 
     // エッジ表示
     const edgeGeo = new THREE.EdgesGeometry(doorGeo);
-    const edgeMat = new THREE.LineBasicMaterial({ color: 0x5C3317 });
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x3B2410 });
     const edges = new THREE.LineSegments(edgeGeo, edgeMat);
     edges.position.copy(door.position);
     edges.rotation.copy(door.rotation);
@@ -98,7 +98,7 @@ function addDecorativeBand(yCenter) {
   shape.lineTo(-bandWidth / 2, -bandHeight / 2);
 
   const geometry = new THREE.BufferGeometry().setFromPoints(shape.getPoints());
-  const material = new THREE.LineBasicMaterial({ color: 0x5C3317 });
+  const material = new THREE.LineBasicMaterial({ color: 0x3B2410 });
   const band = new THREE.LineLoop(geometry, material);
 
   band.position.set(0, yCenter, doorDepth / 2 + 0.011); // ドア面のちょっと前
