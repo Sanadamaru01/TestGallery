@@ -61,7 +61,7 @@ export function buildRoom(scene, config) {
   const doorMat = new THREE.MeshStandardMaterial({
     color: 0xff0000,
     opacity: 0.7,
-    transparent: true
+    transparent: true,
     side: THREE.DoubleSide
   });
 
@@ -75,7 +75,7 @@ export function buildRoom(scene, config) {
   const testMat = new THREE.MeshBasicMaterial({
     color: 0x00ff00,
     opacity: 0.5,
-    transparent: true
+    transparent: true,
     side: THREE.DoubleSide
   });
   const testBox = new THREE.Mesh(testGeo, testMat);
