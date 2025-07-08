@@ -95,7 +95,7 @@ export function buildRoom(scene, config) {
       new THREE.PlaneGeometry(doorWidth, doorHeight),
       new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide })
     );
-    clickPanel.position.set(0, doorY, doorZ + 0.01); // ドアより手前
+    clickPanel.position.set(0, doorY, doorZ + 0.05); // ドアより手前
     clickPanel.rotation.y = Math.PI;
     clickPanel.userData.onClick = () => {
       window.location.href = '../../index.html';
