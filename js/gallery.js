@@ -11,7 +11,6 @@ export function initGallery(imageFiles, config, imageBasePath) {
     backgroundColor
   } = config;
 
-  // タイトルバーの高さを data 属性から取得（デフォルト 60）
   const titleBar = document.getElementById('titleBar');
   const HEADER_HEIGHT = titleBar ? parseInt(titleBar.dataset.height || '60', 10) : 60;
   const GALLERY_HEIGHT = WALL_HEIGHT / 2;
@@ -19,6 +18,7 @@ export function initGallery(imageFiles, config, imageBasePath) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(backgroundColor);
   scene.userData.wallWidth = WALL_WIDTH;
+  scene.userData.clickablePanels = []; // クリック対象初期化
 
   const camera = new THREE.PerspectiveCamera(
     75,
@@ -34,9 +34,16 @@ export function initGallery(imageFiles, config, imageBasePath) {
   renderer.outputEncoding = THREE.sRGBEncoding;
   document.body.appendChild(renderer.domElement);
 
-  // 部屋（床・壁）構築
-  scene.userData.clickablePanels = [];  // ←★ 追加（これが重要）
-  const floor = buildRoom(scene, config);
+  // 部屋とドア構築
+  const { floor, door } = buildRoom(scene, config);
+
+  // ドアクリック処理をここで設定
+  door.userData = {
+    onClick: () => {
+      window.location.href = '../../index.html';
+    }
+  };
+  scene.userData.clickablePanels.push(door);
 
   // 照明
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -52,7 +59,6 @@ export function initGallery(imageFiles, config, imageBasePath) {
   // 画像読み込み・配置
   loadImages(scene, imageFiles, WALL_WIDTH, WALL_HEIGHT, fixedLongSide, imageBasePath);
 
-  // ビューポート高さ取得（安定版）
   function getViewportHeight() {
     return document.documentElement.clientHeight;
   }
@@ -61,14 +67,11 @@ export function initGallery(imageFiles, config, imageBasePath) {
     return getViewportHeight() - HEADER_HEIGHT;
   }
 
-  // リサイズ対応
   function onWindowResize() {
     const width = window.innerWidth;
     const height = getViewportHeightMinusHeader();
-
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
-
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio);
   }
@@ -77,29 +80,24 @@ export function initGallery(imageFiles, config, imageBasePath) {
   });
   onWindowResize();
 
-  // アニメーションループ
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
     animateCamera();
-
     const lightPos = lightOffset.clone();
     camera.localToWorld(lightPos);
     light.position.copy(lightPos);
     light.target.position.copy(controls.target);
-
     renderer.render(scene, camera);
   }
-    // --- ドア・パネルのクリック処理 ---
+
   window.addEventListener('click', (event) => {
     const mouse = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,
       - (event.clientY / getViewportHeightMinusHeader()) * 2 + 1
     );
-
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
-
     const intersects = raycaster.intersectObjects(scene.userData.clickablePanels || []);
     if (intersects.length > 0) {
       const clicked = intersects[0].object;
