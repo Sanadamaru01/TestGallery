@@ -88,7 +88,7 @@ export async function buildRoom(scene, config) {
     // --- ドア装飾バンド（透明な枠線） ---
 function addDecorativeBand(yCenter) {
   const bandWidth = doorWidth - 0.4;  // 左右に余白0.2ずつ
-  const bandHeight = 0.4;
+  const bandHeight = 1;
 
   const shape = new THREE.Shape();
   shape.moveTo(-bandWidth / 2, -bandHeight / 2);
@@ -106,10 +106,10 @@ function addDecorativeBand(yCenter) {
 }
 
 // --- 上バンド（ドア上端から少し下）
-addDecorativeBand(doorHeight / 2 - 0.3);
+addDecorativeBand(doorHeight / 2 - 0.4);
 
 // --- 下バンド（ドア下端から少し上）
-addDecorativeBand(-doorHeight / 2 + 0.3);
+addDecorativeBand(-doorHeight / 2 + 0.4);
 
     // --- EXIT 看板（CanvasTexture） ---
     const canvas = document.createElement('canvas');
