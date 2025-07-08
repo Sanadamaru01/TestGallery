@@ -98,31 +98,42 @@ export function initGallery(imageFiles, config, imageBasePath) {
   }
 
   // --- クリックイベント処理 ---
-  window.addEventListener('click', (event) => {
-    const mouse = new THREE.Vector2(
-      (event.clientX / window.innerWidth) * 2 - 1,
-      - (event.clientY / getViewportHeightMinusHeader()) * 2 + 1
-    );
+window.addEventListener('click', (event) => {
+  const mouse = new THREE.Vector2(
+    (event.clientX / window.innerWidth) * 2 - 1,
+    - (event.clientY / getViewportHeightMinusHeader()) * 2 + 1
+  );
 
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouse, camera);
 
-    const clickable = scene.userData.clickablePanels || [];
-    console.log('クリック対象リスト:', clickable);
-    const intersects = raycaster.intersectObjects(clickable);
-
-    if (intersects.length > 0) {
-      const clicked = intersects[0].object;
-      console.log('🟢 クリックヒット:', clicked.name || clicked.uuid);
-      if (clicked.userData && typeof clicked.userData.onClick === 'function') {
-        clicked.userData.onClick();
-      } else {
-        console.log('⚠️ onClick 未定義');
-      }
-    } else {
-      console.log('🔴 クリック対象なし');
-    }
+  const clickable = scene.userData.clickablePanels || [];
+  
+  console.log('【クリック対象リスト】');
+  clickable.forEach((obj, idx) => {
+    console.log(`  [${idx}] name: ${obj.name || 'no-name'}, uuid: ${obj.uuid}`);
   });
+
+  console.log('ドアは含まれているか？', clickable.includes(door)); // ← ここも
+
+  const intersects = raycaster.intersectObjects(clickable);
+
+  console.log(`【クリック判定結果】ヒット数: ${intersects.length}`);
+
+  if (intersects.length > 0) {
+    const clicked = intersects[0].object;
+    console.log(`🟢 ヒットオブジェクト: name=${clicked.name || 'no-name'}, uuid=${clicked.uuid}`);
+    if (clicked.userData && typeof clicked.userData.onClick === 'function') {
+      console.log('🔔 onClick関数あり → 実行します');
+      clicked.userData.onClick();
+    } else {
+      console.log('⚠️ onClick関数が未定義です');
+    }
+  } else {
+    console.log('🔴 クリック対象なし（どのオブジェクトもヒットしませんでした）');
+  }
+});
+
 
   animate();
 }
