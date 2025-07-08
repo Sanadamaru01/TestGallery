@@ -71,7 +71,7 @@ export async function buildRoom(scene, config) {
 
     // エッジ表示
     const edgeGeo = new THREE.EdgesGeometry(doorGeo);
-    const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000 });
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x5C3317 });
     const edges = new THREE.LineSegments(edgeGeo, edgeMat);
     edges.position.copy(door.position);
     edges.rotation.copy(door.rotation);
@@ -79,7 +79,7 @@ export async function buildRoom(scene, config) {
 
     // --- ドアノブ（筒状） ---
     const knobGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.25, 32);
-    const knobMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const knobMat = new THREE.MeshStandardMaterial({ color: 0x5C3317 });
     const knob = new THREE.Mesh(knobGeo, knobMat);
     knob.rotation.x = Math.PI / 2;
     knob.position.set(-doorWidth / 2 + 0.25, doorY, doorZ + doorDepth / 2 + 0.06);
@@ -98,7 +98,7 @@ function addDecorativeBand(yCenter) {
   shape.lineTo(-bandWidth / 2, -bandHeight / 2);
 
   const geometry = new THREE.BufferGeometry().setFromPoints(shape.getPoints());
-  const material = new THREE.LineBasicMaterial({ color: 0x000000 });
+  const material = new THREE.LineBasicMaterial({ color: 0x5C3317 });
   const band = new THREE.LineLoop(geometry, material);
 
   band.position.set(0, yCenter, doorDepth / 2 + 0.011); // ドア面のちょっと前
@@ -106,10 +106,10 @@ function addDecorativeBand(yCenter) {
 }
 
 // --- 上バンド（ドア上端から少し下）
-addDecorativeBand(doorHeight / 2 - 0.8);
+addDecorativeBand(doorHeight / 2 - 0.75);
 
 // --- 下バンド（ドア下端から少し上）
-addDecorativeBand(-doorHeight / 2 + 0.8);
+addDecorativeBand(-doorHeight / 2 + 0.75);
 
     // --- EXIT 看板（CanvasTexture） ---
     const canvas = document.createElement('canvas');
