@@ -45,6 +45,9 @@ export function initGallery(imageFiles, config, imageBasePath) {
   };
   scene.userData.clickablePanels.push(door);
 
+console.log('クリック対象リスト:', scene.userData.clickablePanels);
+console.log('ドアは含まれているか？', scene.userData.clickablePanels.includes(door));
+  
   // 照明
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
   const ambientLight = new THREE.AmbientLight(0x888888, 0.5);
