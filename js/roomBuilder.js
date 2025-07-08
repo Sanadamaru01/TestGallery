@@ -80,35 +80,27 @@ export function buildRoom(scene, config) {
   const doorWidth = 2;
   const doorHeight = 3;
   const doorDepth = 0.1;
+  const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
   const doorZ = -w + doorDepth / 2;
   const doorY = doorHeight / 2;
-  const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
   const doorTexPath = texturePaths?.Door;
 
   const addDoor = (material) => {
-    // ドア本体
     const door = new THREE.Mesh(doorGeometry, material);
     door.position.set(0, doorY, doorZ);
     door.rotation.y = Math.PI;
-    scene.add(door);
-
-    // クリックパネル（少し前に出して確実に反応）
-    const clickPanel = new THREE.Mesh(
-      new THREE.PlaneGeometry(doorWidth, doorHeight),
-      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide })
-    );
-    clickPanel.position.set(0, doorY, doorZ + 0.05);
-    clickPanel.rotation.y = Math.PI;
-    clickPanel.userData.onClick = () => {
+    door.userData.onClick = () => {
       window.location.href = '../../index.html';
     };
-    scene.add(clickPanel);
+    scene.add(door);
 
+    // クリック判定はドアそのもの
     if (!scene.userData.clickablePanels) {
       scene.userData.clickablePanels = [];
     }
-    scene.userData.clickablePanels.push(clickPanel);
+    scene.userData.clickablePanels.push(door);
 
+    // ドアノブだけ追加（左側）
     addDoorKnob(scene, doorWidth, doorHeight, doorZ);
   };
 
@@ -128,18 +120,19 @@ export function buildRoom(scene, config) {
       }
     );
   } else {
-    const fallbackMat = new THREE.MeshBasicMaterial({ color: 0xCD853F, side: THREE.DoubleSide });
-    addDoor(fallbackMat);
+    const defaultMat = new THREE.MeshBasicMaterial({ color: 0xCD853F, side: THREE.DoubleSide });
+    addDoor(defaultMat);
+  }
+
+  // --- ドアノブ ---
+  function addDoorKnob(scene, width, height, z) {
+    const knobGeo = new THREE.SphereGeometry(0.08, 16, 16);
+    const knobMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const knob = new THREE.Mesh(knobGeo, knobMat);
+    // ノブはドアの左側に配置
+    knob.position.set(-width / 2 + 0.3, height / 2, z + 0.05);
+    scene.add(knob);
   }
 
   return floor;
-}
-
-// --- ドアノブのみ ---
-function addDoorKnob(scene, width, height, z) {
-  const knobGeo = new THREE.SphereGeometry(0.08, 16, 16);
-  const knobMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-  const knob = new THREE.Mesh(knobGeo, knobMat);
-  knob.position.set(-width / 2 + 0.3, height / 2, z + 0.05); // 左側に配置
-  scene.add(knob);
 }
