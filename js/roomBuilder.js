@@ -12,57 +12,35 @@ export function buildRoom(scene, config) {
 
   const textureLoader = new THREE.TextureLoader();
 
-  // 壁マテリアル
-  const wallTex = texturePaths?.wall ? textureLoader.load(texturePaths.wall) : null;
-  if (wallTex) {
-    wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
-    wallTex.repeat.set(2, 1);
-  }
-  const wallMat = wallTex
-    ? new THREE.MeshStandardMaterial({ map: wallTex, side: THREE.DoubleSide })
-    : new THREE.MeshStandardMaterial({ color: new THREE.Color(backgroundColor), side: THREE.DoubleSide });
+  // --- マテリアル設定 ---
+  const createMat = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
+    if (texPath) {
+      const tex = textureLoader.load(texPath);
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(repeatX, repeatY);
+      return new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide });
+    } else {
+      return new THREE.MeshStandardMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
+    }
+  };
 
-  // 床マテリアル
-  const floorTex = texturePaths?.floor ? textureLoader.load(texturePaths.floor) : null;
-  if (floorTex) {
-    floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
-    floorTex.repeat.set(1, 1);
-  }
-  const floorMat = floorTex
-    ? new THREE.MeshStandardMaterial({ map: floorTex })
-    : new THREE.MeshStandardMaterial({ color: new THREE.Color(backgroundColor) });
+  const wallMat = createMat(texturePaths?.wall, backgroundColor, 2, 1);
+  const floorMat = createMat(texturePaths?.floor, backgroundColor, 1, 1);
+  const ceilMat  = createMat(texturePaths?.ceiling, backgroundColor, 2, 2);
 
-  // 天井マテリアル
-  const ceilTex = texturePaths?.ceiling ? textureLoader.load(texturePaths.ceiling) : null;
-  if (ceilTex) {
-    ceilTex.wrapS = ceilTex.wrapT = THREE.RepeatWrapping;
-    ceilTex.repeat.set(2, 2);
-  }
-  const ceilMat = ceilTex
-    ? new THREE.MeshStandardMaterial({ map: ceilTex })
-    : new THREE.MeshStandardMaterial({ color: new THREE.Color(backgroundColor) });
-
-  // 床
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH),
-    floorMat
-  );
+  // --- 床・天井 ---
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), floorMat);
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
 
-  // 天井
-  const ceiling = new THREE.Mesh(
-    new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH),
-    ceilMat
-  );
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), ceilMat);
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.y = WALL_HEIGHT;
   scene.add(ceiling);
 
-  // 壁共通ジオメトリ
+  // --- 壁 ---
   const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, WALL_HEIGHT);
   const h = WALL_HEIGHT / 2, w = WALL_WIDTH / 2;
-
   const addWall = (x, y, z, ry) => {
     const wall = new THREE.Mesh(wallGeo, wallMat);
     wall.position.set(x, y, z);
@@ -70,89 +48,57 @@ export function buildRoom(scene, config) {
     scene.add(wall);
   };
 
-  // 各壁を追加
   addWall(0, h, -w, 0);            // back
   addWall(0, h, w, Math.PI);       // front
   addWall(-w, h, 0, Math.PI / 2);  // right
   addWall(w, h, 0, -Math.PI / 2);  // left
 
-  // --- ドア追加 ---
+  // --- ドア本体 ---
   const doorWidth = 2;
   const doorHeight = 3;
-  const doorGeometry = new THREE.PlaneGeometry(doorWidth, doorHeight);
-  const doorZ = -w + 0.05;
+  const doorDepth = 0.1;
   const doorY = doorHeight / 2;
-  const doorTexPath = texturePaths?.Door;
+  const doorZ = -w + doorDepth / 2;
+  const doorGeometry = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
 
   const addDoor = (material) => {
     const door = new THREE.Mesh(doorGeometry, material);
     door.position.set(0, doorY, doorZ);
     door.rotation.y = Math.PI;
+
     door.userData.onClick = () => {
+      console.log('[door] clicked!');
       window.location.href = '../../index.html';
     };
-    scene.add(door);
 
-    // 安全に clickablePanels に追加
+    scene.add(door);
     if (!scene.userData.clickablePanels) {
       scene.userData.clickablePanels = [];
     }
     scene.userData.clickablePanels.push(door);
-
-    addDoorFrame(scene, doorWidth, doorHeight, doorZ);
-    addDoorKnob(scene, doorWidth, doorHeight, doorZ);
   };
 
+  // ドアテクスチャのロード処理
+  const doorTexPath = texturePaths?.Door;
   if (doorTexPath) {
     textureLoader.load(
       doorTexPath,
       (tex) => {
         tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
         tex.encoding = THREE.sRGBEncoding;
-        const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+        const mat = new THREE.MeshStandardMaterial({ map: tex });
         addDoor(mat);
       },
       undefined,
       () => {
-        const fallbackMat = new THREE.MeshBasicMaterial({ color: 0xCD853F, side: THREE.DoubleSide });
+        const fallbackMat = new THREE.MeshStandardMaterial({ color: 0xCD853F });
         addDoor(fallbackMat);
       }
     );
   } else {
-    const defaultMat = new THREE.MeshBasicMaterial({ color: 0xCD853F, side: THREE.DoubleSide });
+    const defaultMat = new THREE.MeshStandardMaterial({ color: 0xCD853F });
     addDoor(defaultMat);
   }
 
   return floor;
-}
-
-// --- ドアの枠 ---
-function addDoorFrame(scene, width, height, z) {
-  const frameColor = 0x654321;
-  const frameMat = new THREE.MeshBasicMaterial({ color: frameColor });
-  const t = 0.05; // 枠の厚み
-
-  // 左
-  const left = new THREE.Mesh(new THREE.BoxGeometry(t, height, 0.01), frameMat);
-  left.position.set(-width / 2 + t / 2, height / 2, z + 0.01);
-  scene.add(left);
-
-  // 右
-  const right = new THREE.Mesh(new THREE.BoxGeometry(t, height, 0.01), frameMat);
-  right.position.set(width / 2 - t / 2, height / 2, z + 0.01);
-  scene.add(right);
-
-  // 上
-  const top = new THREE.Mesh(new THREE.BoxGeometry(width, t, 0.01), frameMat);
-  top.position.set(0, height - t / 2, z + 0.01);
-  scene.add(top);
-}
-
-// --- ドアノブ ---
-function addDoorKnob(scene, width, height, z) {
-  const knobGeo = new THREE.SphereGeometry(0.1, 16, 16);
-  const knobMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-  const knob = new THREE.Mesh(knobGeo, knobMat);
-  knob.position.set(width / 2 - 0.3, height / 2, z + 0.05);
-  scene.add(knob);
 }
