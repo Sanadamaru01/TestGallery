@@ -33,12 +33,12 @@ export function buildRoom(scene, config) {
   // --- 天井 ---
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), ceilMat);
   ceiling.rotation.x = Math.PI / 2;
-  ceiling.position.y = WALL_HEIGHT; // ← 修正
+  ceiling.position.y = WALL_HEIGHT;
   scene.add(ceiling);
 
   // --- 壁 ---
-  const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, WALL_HEIGHT); // ← 修正
-  const h = WALL_HEIGHT / 2, w = WALL_WIDTH / 2; // ← 修正
+  const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, WALL_HEIGHT);
+  const h = WALL_HEIGHT / 2, w = WALL_WIDTH / 2;
   const addWall = (x, y, z, ry) => {
     const wall = new THREE.Mesh(wallGeo, wallMat);
     wall.position.set(x, y, z);
@@ -58,35 +58,47 @@ export function buildRoom(scene, config) {
   const doorZ = -w + doorDepth / 2 + 0.01; // 壁より少し前に出す
 
   const doorGeo = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
-  const doorMat = new THREE.MeshStandardMaterial({
-    color: 0xff0000,
-    opacity: 0.7,
-    transparent: true,
-    side: THREE.DoubleSide
-  });
 
-  const door = new THREE.Mesh(doorGeo, doorMat);
-  door.name = 'Door';
-  door.position.set(0, doorY, doorZ);
-  scene.add(door);
+  // ドア用マテリアル作成関数
+  const createDoor = (material) => {
+    const door = new THREE.Mesh(doorGeo, material);
+    door.name = 'Door';
+    door.position.set(0, doorY, doorZ);
+    scene.add(door);
 
-  // --- テスト用クリック確認ボックス ---
-  const testGeo = new THREE.BoxGeometry(1.5, 1.5, 0.1);
-  const testMat = new THREE.MeshBasicMaterial({
-    color: 0x00ff00,
-    opacity: 0.5,
-    transparent: true,
-    side: THREE.DoubleSide
-  });
-  const testBox = new THREE.Mesh(testGeo, testMat);
-  testBox.position.set(2, 1.5, -1);
-  testBox.name = 'TestBox';
-  scene.add(testBox);
+    // クリック対象登録
+    if (!Array.isArray(scene.userData.clickablePanels)) {
+      scene.userData.clickablePanels = [];
+    }
+    scene.userData.clickablePanels.push(door);
 
-  // 複数オブジェクトを返す
-  return {
-    floor,
-    door,
-    testBox
+    return door;
   };
+
+  let door;
+
+  if (texturePaths?.Door) {
+    // ドアテクスチャを読み込み
+    textureLoader.load(
+      texturePaths.Door,
+      (tex) => {
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.encoding = THREE.sRGBEncoding;
+        const doorMat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide });
+        door = createDoor(doorMat);
+      },
+      undefined,
+      () => {
+        // 読み込み失敗時はカラーでフォールバック
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0xff0000, opacity: 0.7, transparent: true, side: THREE.DoubleSide });
+        door = createDoor(doorMat);
+      }
+    );
+  } else {
+    // ドアテクスチャ指定なしの場合は赤の半透明ドア
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0xff0000, opacity: 0.7, transparent: true, side: THREE.DoubleSide });
+    door = createDoor(doorMat);
+  }
+
+  return { floor, door };
 }
