@@ -82,19 +82,31 @@ export function buildRoom(scene, config) {
   const doorGeo = new THREE.PlaneGeometry(doorWidth, doorHeight);
 
   const addDoor = (material) => {
-    const door = new THREE.Mesh(doorGeo, material);
+    const door = new THREE.Mesh(
+      new THREE.PlaneGeometry(doorWidth, doorHeight),
+      material
+    );
     door.position.set(0, doorY, doorZ);
     door.rotation.y = Math.PI;
-    door.userData.onClick = () => {
+    scene.add(door);
+  
+    // 🔽 クリック専用の透明パネルを追加（Raycasterのターゲット）
+    const clickPanel = new THREE.Mesh(
+      new THREE.PlaneGeometry(doorWidth, doorHeight),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, side: THREE.DoubleSide })
+    );
+    clickPanel.position.set(0, doorY, doorZ + 0.01); // ドアより手前
+    clickPanel.rotation.y = Math.PI;
+    clickPanel.userData.onClick = () => {
       window.location.href = '../../index.html';
     };
-    scene.add(door);
-
+    scene.add(clickPanel);
+  
     if (!scene.userData.clickablePanels) {
       scene.userData.clickablePanels = [];
     }
-    scene.userData.clickablePanels.push(door);
-
+    scene.userData.clickablePanels.push(clickPanel);
+  
     addDoorFrame(scene, doorWidth, doorHeight, doorZ);
     addDoorKnob(scene, doorWidth, doorHeight, doorZ);
   };
