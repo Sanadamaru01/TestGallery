@@ -91,32 +91,32 @@ export function initGallery(imageFiles, config, imageBasePath) {
     renderer.render(scene, camera);
   }
 
-window.addEventListener('click', (event) => {
-  const mouse = new THREE.Vector2(
-    (event.clientX / window.innerWidth) * 2 - 1,
-    - (event.clientY / getViewportHeightMinusHeader()) * 2 + 1
-  );
+// ...前略...
 
-  const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(mouse, camera);
+  window.addEventListener('click', (event) => {
+    const mouse = new THREE.Vector2(
+      (event.clientX / window.innerWidth) * 2 - 1,
+      - (event.clientY / getViewportHeightMinusHeader()) * 2 + 1
+    );
 
-  const intersects = raycaster.intersectObjects(scene.userData.clickablePanels || []);
-  console.log('クリック判定: ', intersects.length, '件'); // ← 追加
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(mouse, camera);
 
-  if (intersects.length > 0) {
-    const clicked = intersects[0].object;
-    console.log('クリック対象: ', clicked.name || clicked.uuid); // ← 追加
-    if (clicked.userData && typeof clicked.userData.onClick === 'function') {
-      console.log('onClick 実行'); // ← 追加
-      clicked.userData.onClick();
+    const intersects = raycaster.intersectObjects(scene.userData.clickablePanels || []);
+    console.log('クリック判定: ', intersects.length, '件');
+
+    if (intersects.length > 0) {
+      const clicked = intersects[0].object;
+      console.log('クリック対象: ', clicked.name || clicked.uuid);
+      if (clicked.userData && typeof clicked.userData.onClick === 'function') {
+        console.log('onClick 実行');
+        clicked.userData.onClick();
+      } else {
+        console.log('onClick が未定義です');
+      }
     } else {
-      console.log('onClick が未定義です'); // ← 追加
+      console.log('何もヒットしませんでした');
     }
-  } else {
-    console.log('何もヒットしませんでした'); // ← 追加
-  }
-});
-
   });
 
   animate();
