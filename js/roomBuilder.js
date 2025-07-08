@@ -33,12 +33,12 @@ export function buildRoom(scene, config) {
   // --- 天井 ---
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), ceilMat);
   ceiling.rotation.x = Math.PI / 2;
-  ceiling.position.y = wallHeight;
+  ceiling.position.y = WALL_HEIGHT; // ← 修正
   scene.add(ceiling);
 
   // --- 壁 ---
-  const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, wallHeight);
-  const h = wallHeight / 2, w = WALL_WIDTH / 2;
+  const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, WALL_HEIGHT); // ← 修正
+  const h = WALL_HEIGHT / 2, w = WALL_WIDTH / 2; // ← 修正
   const addWall = (x, y, z, ry) => {
     const wall = new THREE.Mesh(wallGeo, wallMat);
     wall.position.set(x, y, z);
@@ -77,11 +77,11 @@ export function buildRoom(scene, config) {
     transparent: true
   });
   const testBox = new THREE.Mesh(testGeo, testMat);
-  testBox.position.set(2, 1.5, -1); // 右側に配置
+  testBox.position.set(2, 1.5, -1);
   testBox.name = 'TestBox';
   scene.add(testBox);
 
-  // return 複数オブジェクト
+  // 複数オブジェクトを返す
   return {
     floor,
     door,
