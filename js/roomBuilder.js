@@ -10,7 +10,6 @@ export function buildRoom(scene, config) {
 
   const textureLoader = new THREE.TextureLoader();
 
-  // マテリアル生成関数
   const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
     if (texPath) {
       const tex = textureLoader.load(texPath);
@@ -21,7 +20,6 @@ export function buildRoom(scene, config) {
     return new THREE.MeshStandardMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
   };
 
-  // マテリアル
   const wallMat = makeMaterial(texturePaths?.wall, backgroundColor, 2, 1);
   const floorMat = makeMaterial(texturePaths?.floor, backgroundColor);
   const ceilMat  = makeMaterial(texturePaths?.ceiling, backgroundColor, 2, 2);
@@ -34,28 +32,28 @@ export function buildRoom(scene, config) {
   // 天井
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), ceilMat);
   ceiling.rotation.x = Math.PI / 2;
-  ceiling.position.y = WALL_HEIGHT;
+  ceiling.position.y = wallHeight;
   scene.add(ceiling);
 
   // 壁
-  const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, WALL_HEIGHT);
-  const h = WALL_HEIGHT / 2, w = WALL_WIDTH / 2;
+  const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, wallHeight);
+  const h = wallHeight / 2, w = WALL_WIDTH / 2;
   const addWall = (x, y, z, ry) => {
     const wall = new THREE.Mesh(wallGeo, wallMat);
     wall.position.set(x, y, z);
     wall.rotation.y = ry;
     scene.add(wall);
   };
-  addWall(0, h, -w, 0);           // back
-  addWall(0, h, w, Math.PI);      // front
-  addWall(-w, h, 0, Math.PI / 2); // right
-  addWall(w, h, 0, -Math.PI / 2); // left
+  addWall(0, h, -w, 0);
+  addWall(0, h, w, Math.PI);
+  addWall(-w, h, 0, Math.PI / 2);
+  addWall(w, h, 0, -Math.PI / 2);
 
-  // ドア（床と同じようにPlaneで）
+  // ドア（表示のみ）
   const doorWidth = 2;
   const doorHeight = 3;
   const doorY = doorHeight / 2;
-  const doorZ = -w + 1.05;
+  const doorZ = -w + 0.05;
 
   const doorGeo = new THREE.PlaneGeometry(doorWidth, doorHeight);
   const doorMat = texturePaths?.Door
@@ -67,25 +65,15 @@ export function buildRoom(scene, config) {
 
   const door = new THREE.Mesh(doorGeo, doorMat);
   door.position.set(0, doorY, doorZ);
-  door.rotation.y = 0; // ← 正面向き（裏にしない）
-
-  // クリックでページ遷移
-  door.userData.onClick = () => {
-    window.location.href = '../../index.html';
-  };
-
+  door.rotation.y = 0; // 正面向き
   scene.add(door);
 
-  // クリック対象に登録
-  if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
-  scene.userData.clickablePanels.push(door);
-
-  // ノブ
+  // ノブだけ表示
   const knobGeo = new THREE.SphereGeometry(0.08, 16, 16);
   const knobMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
   const knob = new THREE.Mesh(knobGeo, knobMat);
-  knob.position.set(-doorWidth / 2 + 0.3, doorY, doorZ + 0.05); // 左側ノブ
+  knob.position.set(-doorWidth / 2 + 0.3, doorY, doorZ + 0.05);
   scene.add(knob);
 
-  return floor;
+  return { floor, door };
 }
