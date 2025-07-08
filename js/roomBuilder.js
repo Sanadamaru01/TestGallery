@@ -56,7 +56,6 @@ export async function buildRoom(scene, config) {
   const doorDepth = 0.1;
   const doorY = doorHeight / 2;
   const doorZ = -w + doorDepth / 2 + 0.01;
-
   const doorGeo = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
 
   const createDoor = (material) => {
@@ -70,7 +69,7 @@ export async function buildRoom(scene, config) {
     }
     scene.userData.clickablePanels.push(door);
 
-    // ドアのエッジを追加
+    // エッジ表示
     const edgeGeo = new THREE.EdgesGeometry(doorGeo);
     const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000 });
     const edges = new THREE.LineSegments(edgeGeo, edgeMat);
@@ -78,13 +77,49 @@ export async function buildRoom(scene, config) {
     edges.rotation.copy(door.rotation);
     scene.add(edges);
 
-    // 👉 ドアノブを追加（筒状）
-    const knobGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.2, 32); // ← 太く＆滑らかに
+    // --- ドアノブ（筒状） ---
+    const knobGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.25, 32);
     const knobMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
     const knob = new THREE.Mesh(knobGeo, knobMat);
-    knob.rotation.x = Math.PI / 2;// ドアから前方（Z軸）に生やすためにX軸に90度回転
-    knob.position.set(-doorWidth / 2 + 0.25, doorY, doorZ + 0.06);
+    knob.rotation.x = Math.PI / 2;
+    knob.position.set(-doorWidth / 2 + 0.25, doorY, doorZ + doorDepth / 2 + 0.06);
     scene.add(knob);
+
+    // --- 上下の装飾バンド ---
+    const bandHeight = 0.1;
+    const bandDepth = 0.02;
+    const bandColor = 0x000000;
+
+    const topBand = new THREE.Mesh(
+      new THREE.BoxGeometry(doorWidth * 0.9, bandHeight, bandDepth),
+      new THREE.MeshStandardMaterial({ color: bandColor })
+    );
+    topBand.position.set(0, doorHeight / 2 - bandHeight / 2, doorDepth / 2 + 0.011);
+    door.add(topBand);
+
+    const bottomBand = new THREE.Mesh(
+      new THREE.BoxGeometry(doorWidth * 0.9, bandHeight, bandDepth),
+      new THREE.MeshStandardMaterial({ color: bandColor })
+    );
+    bottomBand.position.set(0, -doorHeight / 2 + bandHeight / 2, doorDepth / 2 + 0.011);
+    door.add(bottomBand);
+
+    // --- EXIT 看板（CanvasTexture） ---
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 64px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('EXIT', canvas.width / 2, canvas.height / 2);
+
+    const textTex = new THREE.CanvasTexture(canvas);
+    const textMat = new THREE.MeshBasicMaterial({ map: textTex, transparent: true });
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.5), textMat);
+    sign.position.set(0, 0, doorDepth / 2 + 0.012);
+    door.add(sign);
 
     return door;
   };
