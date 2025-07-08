@@ -109,17 +109,23 @@ export async function buildRoom(scene, config) {
     canvas.width = 256;
     canvas.height = 128;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
+    
+    // 背景を透明にしておく（デフォルト）
+    // 文字色をこげ茶に変更
+    ctx.fillStyle = '#5C3317';  // こげ茶色
     ctx.font = 'bold 64px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('EXIT', canvas.width / 2, canvas.height / 2);
-
+    
     const textTex = new THREE.CanvasTexture(canvas);
     const textMat = new THREE.MeshBasicMaterial({ map: textTex, transparent: true });
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.5), textMat);
-    sign.position.set(0, 0, doorDepth / 2 + 0.012);
+    
+    // ドア高さの3/4（= 上から1/4下がった位置）にセット
+    sign.position.set(0, doorHeight * 0.25, doorDepth / 2 + 0.012);
     door.add(sign);
+
 
     return door;
   };
