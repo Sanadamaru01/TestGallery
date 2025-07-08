@@ -62,6 +62,7 @@ export function buildRoom(scene, config) {
     color: 0xff0000,
     opacity: 0.7,
     transparent: true
+    side: THREE.DoubleSide
   });
 
   const door = new THREE.Mesh(doorGeo, doorMat);
@@ -75,6 +76,7 @@ export function buildRoom(scene, config) {
     color: 0x00ff00,
     opacity: 0.5,
     transparent: true
+    side: THREE.DoubleSide
   });
   const testBox = new THREE.Mesh(testGeo, testMat);
   testBox.position.set(2, 1.5, -1);
