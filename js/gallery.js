@@ -45,7 +45,15 @@ export function initGallery(imageFiles, config, imageBasePath) {
     }
   };
   scene.userData.clickablePanels.push(door);
+  
+console.log('✅ ドアを clickablePanels に追加しました:');
+console.log('  name:', door.name, ', uuid:', door.uuid);
 
+console.log('✅ 登録済みクリック対象一覧:');
+scene.userData.clickablePanels.forEach((obj, i) => {
+  console.log(`  [${i}] name: ${obj.name || 'no-name'}, uuid: ${obj.uuid}`);
+});
+  
   // 照明
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
   const ambientLight = new THREE.AmbientLight(0x888888, 0.5);
