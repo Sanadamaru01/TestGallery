@@ -10,7 +10,7 @@ export function buildRoom(scene, config) {
 
   const textureLoader = new THREE.TextureLoader();
 
-  // --- マテリアル作成 ---
+  // マテリアル生成関数
   const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
     if (texPath) {
       const tex = textureLoader.load(texPath);
@@ -21,21 +21,23 @@ export function buildRoom(scene, config) {
     return new THREE.MeshStandardMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
   };
 
+  // マテリアル
   const wallMat = makeMaterial(texturePaths?.wall, backgroundColor, 2, 1);
-  const floorMat = makeMaterial(texturePaths?.floor, backgroundColor, 1, 1);
+  const floorMat = makeMaterial(texturePaths?.floor, backgroundColor);
   const ceilMat  = makeMaterial(texturePaths?.ceiling, backgroundColor, 2, 2);
 
-  // --- 床・天井 ---
+  // 床
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), floorMat);
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
 
+  // 天井
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), ceilMat);
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.y = WALL_HEIGHT;
   scene.add(ceiling);
 
-  // --- 壁 ---
+  // 壁
   const wallGeo = new THREE.PlaneGeometry(WALL_WIDTH, WALL_HEIGHT);
   const h = WALL_HEIGHT / 2, w = WALL_WIDTH / 2;
   const addWall = (x, y, z, ry) => {
@@ -49,7 +51,7 @@ export function buildRoom(scene, config) {
   addWall(-w, h, 0, Math.PI / 2); // right
   addWall(w, h, 0, -Math.PI / 2); // left
 
-  // --- ドア（Plane） ---
+  // ドア（床と同じようにPlaneで）
   const doorWidth = 2;
   const doorHeight = 3;
   const doorY = doorHeight / 2;
@@ -57,25 +59,28 @@ export function buildRoom(scene, config) {
 
   const doorGeo = new THREE.PlaneGeometry(doorWidth, doorHeight);
   const doorMat = texturePaths?.Door
-    ? new THREE.MeshBasicMaterial({
+    ? new THREE.MeshStandardMaterial({
         map: textureLoader.load(texturePaths.Door),
         side: THREE.DoubleSide
       })
-    : new THREE.MeshBasicMaterial({ color: 0xCD853F, side: THREE.DoubleSide });
+    : new THREE.MeshStandardMaterial({ color: 0xCD853F, side: THREE.DoubleSide });
 
   const door = new THREE.Mesh(doorGeo, doorMat);
   door.position.set(0, doorY, doorZ);
-  door.rotation.y = Math.PI;
+  door.rotation.y = 0; // ← 正面向き（裏にしない）
+
+  // クリックでページ遷移
   door.userData.onClick = () => {
     window.location.href = '../../index.html';
   };
+
   scene.add(door);
 
-  // --- clickable に追加（初期化が必要） ---
+  // クリック対象に登録
   if (!scene.userData.clickablePanels) scene.userData.clickablePanels = [];
   scene.userData.clickablePanels.push(door);
 
-  // --- ノブ ---
+  // ノブ
   const knobGeo = new THREE.SphereGeometry(0.08, 16, 16);
   const knobMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
   const knob = new THREE.Mesh(knobGeo, knobMat);
