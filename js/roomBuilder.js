@@ -70,8 +70,16 @@ export async function buildRoom(scene, config) {
     }
     scene.userData.clickablePanels.push(door);
 
+    // ドアのエッジを追加
+    const edgeGeo = new THREE.EdgesGeometry(doorGeo);
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000 });
+    const edges = new THREE.LineSegments(edgeGeo, edgeMat);
+    edges.position.copy(door.position);
+    edges.rotation.copy(door.rotation);
+    scene.add(edges);
+
     // 👉 ドアノブを追加（筒状）
-    const knobGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.2, 16);
+    const knobGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.2, 32); // ← 太く＆滑らかに
     const knobMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
     const knob = new THREE.Mesh(knobGeo, knobMat);
     knob.rotation.x = Math.PI / 2;// ドアから前方（Z軸）に生やすためにX軸に90度回転
