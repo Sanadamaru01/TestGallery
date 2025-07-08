@@ -55,7 +55,7 @@ export function buildRoom(scene, config) {
   const doorWidth = 2;
   const doorHeight = 3;
   const doorY = doorHeight / 2;
-  const doorZ = -w + 0.05;
+  const doorZ = -w + 1.05;
 
   const doorGeo = new THREE.PlaneGeometry(doorWidth, doorHeight);
   const doorMat = texturePaths?.Door
