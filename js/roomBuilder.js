@@ -106,10 +106,10 @@ function addDecorativeBand(yCenter) {
 }
 
 // --- 上バンド（ドア上端から少し下）
-addDecorativeBand(doorHeight / 2 - 0.9);
+addDecorativeBand(doorHeight / 2 - 0.8);
 
 // --- 下バンド（ドア下端から少し上）
-addDecorativeBand(-doorHeight / 2 + 0.9);
+addDecorativeBand(-doorHeight / 2 + 0.8);
 
     // --- EXIT 看板（CanvasTexture） ---
     const canvas = document.createElement('canvas');
