@@ -134,3 +134,4 @@ export function buildRoom(scene, config) {
     knob.position.set(-width / 2 + 0.3, height / 2, z + 0.05);
     scene.add(knob);
   }
+}
