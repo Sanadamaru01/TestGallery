@@ -11,15 +11,17 @@ export async function buildRoom(scene, config) {
   const textureLoader = new THREE.TextureLoader();
 
   // マテリアル共通関数
-  const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
-    if (texPath) {
-      const tex = textureLoader.load(texPath);
-      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(repeatX, repeatY);
-      return new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide });
-    }
-    return new THREE.MeshStandardMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
-  };
+// マテリアル共通関数（Basicバージョン）
+const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
+  if (texPath) {
+    const tex = textureLoader.load(texPath);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(repeatX, repeatY);
+    return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+  }
+  return new THREE.MeshBasicMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
+};
+
 
   const wallMat = makeMaterial(texturePaths?.wall, backgroundColor, 2, 1);
   const floorMat = makeMaterial(texturePaths?.floor, backgroundColor, 1, 1);
