@@ -21,7 +21,7 @@ export async function buildRoom(scene, config) {
         console.log('→ mipmaps:', loadedTex.generateMipmaps);
       });
 
-      tex.encoding = THREE.sRGBEncoding;
+      tex.colorSpace = THREE.SRGBColorSpace;
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.repeat.set(repeatX, repeatY);
       tex.generateMipmaps = false;
