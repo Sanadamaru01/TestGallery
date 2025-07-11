@@ -31,7 +31,7 @@ export async function initGallery(imageFiles, config, imageBasePath) {
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, getViewportHeightMinusHeader());
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.colorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.0;
   console.log('✅ Renderer encoding:', renderer.outputEncoding);
