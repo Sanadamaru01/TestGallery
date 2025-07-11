@@ -31,7 +31,8 @@ export async function initGallery(imageFiles, config, imageBasePath) {
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, getViewportHeightMinusHeader());
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.outputEncoding = THREE.LinearEncoding;
+  //renderer.outputEncoding = THREE.sRGBEncoding;
   document.body.appendChild(renderer.domElement);
 
   // ✅ ドアが正しく生成された後で取得
