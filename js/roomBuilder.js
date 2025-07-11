@@ -162,7 +162,7 @@ addDecorativeBand(-doorHeight / 2 + 0.75);
         textureLoader.load(texturePaths.Door, resolve, undefined, reject);
       });
       tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-      tex.encoding = THREE.sRGBEncoding;
+      tex.colorSpace = THREE.SRGBColorSpace;
       const mat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide });
       door = createDoor(mat);
     } catch {
