@@ -5,7 +5,7 @@
   "wallWidth": 10,
   "wallHeight": 5,
   "fixedLongSide": 3,
-  "backgroundColor": "#fdf6e3",
+  "backgroundColor": "#000000",
   "texturePaths": {
     "wall": "./textures/Wall.webp",
     "floor": "./textures/Floor.webp",
