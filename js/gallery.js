@@ -34,6 +34,10 @@ export async function initGallery(imageFiles, config, imageBasePath) {
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.0;
+  console.log('✅ Renderer encoding:', renderer.outputEncoding);
+  console.log('✅ ToneMapping:', renderer.toneMapping);
+  console.log('✅ ToneMappingExposure:', renderer.toneMappingExposure);
+
 
   document.body.appendChild(renderer.domElement);
 
