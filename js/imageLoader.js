@@ -25,7 +25,7 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
 
         // Textureも並列ロード
         loader.load(imageBasePath + src, (texture) => {
-          texture.encoding = THREE.sRGBEncoding; // ★ これを追加
+          texture.encoding = THREE.LinearEncoding; // ★ これを追加
           resolve({ fw, fh, texture, src });
         });
       };
