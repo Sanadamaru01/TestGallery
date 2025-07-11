@@ -14,8 +14,13 @@ export async function buildRoom(scene, config) {
   const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
     if (texPath) {
       const tex = textureLoader.load(texPath, (loadedTex) => {
-        console.log(`Loaded texture: ${texPath}`, loadedTex);
+        console.log(`✅ Texture loaded from: ${texPath}`);
+        console.log('→ encoding:', loadedTex.encoding);
+        console.log('→ minFilter:', loadedTex.minFilter);
+        console.log('→ magFilter:', loadedTex.magFilter);
+        console.log('→ mipmaps:', loadedTex.generateMipmaps);
       });
+
       tex.encoding = THREE.sRGBEncoding;
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.repeat.set(repeatX, repeatY);
