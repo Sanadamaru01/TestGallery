@@ -25,7 +25,11 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
 
         // Textureも並列ロード
         loader.load(imageBasePath + src, (texture) => {
-          texture.encoding = THREE.LinearEncoding; // ★ これを追加
+          // v0.175では colorSpace プロパティに変更
+          texture.colorSpace = THREE.SRGBColorSpace;
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+          texture.generateMipmaps = false;
           resolve({ fw, fh, texture, src });
         });
       };
