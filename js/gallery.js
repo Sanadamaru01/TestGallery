@@ -59,10 +59,10 @@ export async function initGallery(imageFiles, config, imageBasePath) {
 
 
   // 💡 照明
-  //const light = new THREE.DirectionalLight(0xffffff, 1.2);
-  //const ambientLight = new THREE.AmbientLight(0x888888, 0.5);
-  //scene.add(light, light.target, ambientLight);
-  //const lightOffset = new THREE.Vector3(0, 10, 7.5);
+  const light = new THREE.DirectionalLight(0xffffff, 1.2);
+  const ambientLight = new THREE.AmbientLight(0x888888, 0.5);
+  scene.add(light, light.target, ambientLight);
+  const lightOffset = new THREE.Vector3(0, 10, 7.5);
 
   // 🎥 カメラコントロール
   const { controls, animateCamera } = setupCameraControls(
@@ -100,10 +100,10 @@ export async function initGallery(imageFiles, config, imageBasePath) {
     controls.update();
     animateCamera();
 
-    //const lightPos = lightOffset.clone();
-    //camera.localToWorld(lightPos);
-    //light.position.copy(lightPos);
-    //light.target.position.copy(controls.target);
+    const lightPos = lightOffset.clone();
+    camera.localToWorld(lightPos);
+    light.position.copy(lightPos);
+    light.target.position.copy(controls.target);
 
     renderer.render(scene, camera);
   }
