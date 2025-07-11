@@ -11,17 +11,22 @@ export async function buildRoom(scene, config) {
   const textureLoader = new THREE.TextureLoader();
 
   // マテリアル共通関数
-// マテリアル共通関数（Basicバージョン）
-const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
-  if (texPath) {
-    const tex = textureLoader.load(texPath);
-    tex.encoding = THREE.sRGBEncoding;
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(repeatX, repeatY);
-    return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
-  }
-  return new THREE.MeshBasicMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
-};
+  const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
+    if (texPath) {
+      const tex = textureLoader.load(texPath);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(repeatX, repeatY);
+      
+      // ✅ ミップマップを無効にして色変化の影響を防ぐ
+      tex.generateMipmaps = false;
+      tex.minFilter = THREE.LinearFilter;
+  
+      return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+    }
+    return new THREE.MeshBasicMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
+  };
+
 
 
   const wallMat = makeMaterial(texturePaths?.wall, backgroundColor, 2, 1);
