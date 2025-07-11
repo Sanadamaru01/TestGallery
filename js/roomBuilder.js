@@ -13,12 +13,12 @@ export async function buildRoom(scene, config) {
   // マテリアル共通関数
   const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
     if (texPath) {
-      const tex = textureLoader.load(texPath);
+      const tex = textureLoader.load(texPath, (loadedTex) => {
+        console.log(`Loaded texture: ${texPath}`, loadedTex);
+      });
       tex.encoding = THREE.sRGBEncoding;
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.repeat.set(repeatX, repeatY);
-      
-      // ✅ ミップマップを無効にして色変化の影響を防ぐ
       tex.generateMipmaps = false;
       tex.minFilter = THREE.LinearFilter;
   
@@ -26,8 +26,6 @@ export async function buildRoom(scene, config) {
     }
     return new THREE.MeshBasicMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
   };
-
-
 
   const wallMat = makeMaterial(texturePaths?.wall, backgroundColor, 2, 1);
   const floorMat = makeMaterial(texturePaths?.floor, backgroundColor, 1, 1);
