@@ -34,7 +34,7 @@ export async function initGallery(imageFiles, config, imageBasePath) {
   renderer.colorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.0;
-  console.log('✅ Renderer encoding:', renderer.outputEncoding);
+  console.log('✅ Renderer colorSpace:', renderer.colorSpace);
   console.log('✅ ToneMapping:', renderer.toneMapping);
   console.log('✅ ToneMappingExposure:', renderer.toneMappingExposure);
 
