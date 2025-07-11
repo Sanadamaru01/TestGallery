@@ -15,7 +15,7 @@ export async function buildRoom(scene, config) {
     if (texPath) {
       const tex = textureLoader.load(texPath, (loadedTex) => {
         console.log(`✅ Texture loaded from: ${texPath}`);
-        console.log('→ encoding:', loadedTex.encoding);
+        console.log('→ colorSpace:', loadedTex.colorSpace);
         console.log('→ minFilter:', loadedTex.minFilter);
         console.log('→ magFilter:', loadedTex.magFilter);
         console.log('→ mipmaps:', loadedTex.generateMipmaps);
