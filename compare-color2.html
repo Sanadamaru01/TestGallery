@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Three.js 色比較テスト（v0.175.0）</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+    }
+    #image-viewer, #three-canvas {
+      width: 50%;
+      height: 100vh;
+      overflow: hidden;
+    }
+    #image-viewer img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: black;
+    }
+  </style>
+</head>
+<body>
+  <div id="image-viewer">
+    <img src="rooms/room0/textures/Floor.webp" alt="Original Image" />
+  </div>
+  <div id="three-canvas"></div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    const container = document.getElementById('three-canvas');
+    const scene = new THREE.Scene();
+
+    const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 10);
+    camera.position.z = 1.5;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.colorSpace = THREE.SRGBColorSpace; // ✅ v0.175.0以降はこちら
+    container.appendChild(renderer.domElement);
+
+    const loader = new THREE.TextureLoader();
+    loader.load('rooms/room0/textures/Floor.webp', (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = false;
+
+      const material = new THREE.MeshBasicMaterial({ map: texture });
+      const geometry = new THREE.PlaneGeometry(1, 1);
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+
+      renderer.render(scene, camera);
+    });
+  </script>
+</body>
+</html>
