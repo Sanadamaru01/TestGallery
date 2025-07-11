@@ -15,7 +15,7 @@ export async function buildRoom(scene, config) {
 const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
   if (texPath) {
     const tex = textureLoader.load(texPath);
-    tex.encoding = THREE.sRGBEncoding;
+    tex.encoding = THREE.LinearEncoding;
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(repeatX, repeatY);
     return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
