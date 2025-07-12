@@ -1,0 +1,25 @@
+{
+  "roomTitle": "Shin Photo Gallery",
+  "startDate": "2025-06-25",
+  "endDate": "2099-01-01",
+  "wallWidth": 10,
+  "wallHeight": 5,
+  "fixedLongSide": 3,
+  "backgroundColor": "#fdf6e3",
+  "texturePaths": {
+    "wall": "../shared/textures/Wall.webp",
+    "floor": "../shared/textures/Floor.webp",
+    "ceiling": "../shared/textures/Ceiling.webp",
+    "Door": "../shared/textures/Door.webp"
+  },
+  "images": [
+    "photo1.webp",
+    "photo2.webp",
+    "photo4.webp",
+    "photo3.webp",
+    "photo5.webp",
+    "photo6.webp",
+    "photo7.webp",
+    "photo8.webp"
+  ]
+}
