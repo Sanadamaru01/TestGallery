@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>コメント機能（Firebase Firestore）</title>
+</head>
+<body>
+  <h1>コメント投稿</h1>
+
+  <textarea id="commentInput" placeholder="コメントを入力..." rows="4" cols="40"></textarea><br />
+  <button id="submitBtn">投稿</button>
+
+  <h2>コメント一覧</h2>
+  <ul id="commentList"></ul>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIhkMNJI2ld9PXD7SO8H0hQ7kKGg9wWnw",
+      authDomain: "gallery-us-ebe6e.firebaseapp.com",
+      projectId: "gallery-us-ebe6e",
+      storageBucket: "gallery-us-ebe6e.firebasestorage.app",
+      messagingSenderId: "783129386319",
+      appId: "1:783129386319:web:b11f5182b082c7032af93a"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const commentInput = document.getElementById("commentInput");
+    const commentList = document.getElementById("commentList");
+
+    // コメントをFirestoreに追加
+    document.getElementById("submitBtn").addEventListener("click", async () => {
+      const text = commentInput.value.trim();
+      if (text === "") return;
+      await addDoc(collection(db, "comments"), {
+        text,
+        createdAt: serverTimestamp()
+      });
+      commentInput.value = "";
+      loadComments();  // 再読み込み
+    });
+
+    // コメント一覧を読み出して表示
+    async function loadComments() {
+      commentList.innerHTML = "";
+      const q = query(collection(db, "comments"), orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      snapshot.forEach((doc) => {
+        const li = document.createElement("li");
+        li.textContent = doc.data().text;
+        commentList.appendChild(li);
+      });
+    }
+
+    // 初回読み込み
+    loadComments();
+  </script>
+</body>
+</html>
