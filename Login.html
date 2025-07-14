@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Firebase Login Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body>
+  <h1>Firebase Authentication（Googleログイン）</h1>
+  <button id="loginBtn">Googleでログイン</button>
+  <button id="logoutBtn">ログアウト</button>
+  <p id="status">未ログイン</p>
+
+  <script type="module">
+    // Firebase SDKの読み込み
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+
+    // Firebase設定（あなたのプロジェクト用）
+    const firebaseConfig = {
+      apiKey: "AIzaSyAIhkMNJI2ld9PXD7SO8H0hQ7kKGg9wWnw",
+      authDomain: "gallery-us-ebe6e.firebaseapp.com",
+      projectId: "gallery-us-ebe6e",
+      storageBucket: "gallery-us-ebe6e.firebasestorage.app",
+      messagingSenderId: "783129386319",
+      appId: "1:783129386319:web:b11f5182b082c7032af93a"
+    };
+
+    // Firebase初期化
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    // Googleログイン処理
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        console.error("ログイン失敗:", error);
+      }
+    });
+
+    // ログアウト処理
+    document.getElementById("logoutBtn").addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error("ログアウト失敗:", error);
+      }
+    });
+
+    // ログイン状態の監視
+    const status = document.getElementById("status");
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        status.textContent = `ログイン中: ${user.displayName || user.email}`;
+      } else {
+        status.textContent = "未ログイン";
+      }
+    });
+  </script>
+</body>
+</html>
