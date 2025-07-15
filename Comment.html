@@ -1,63 +1,74 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8" />
-  <title>コメント機能（Firebase Firestore）</title>
-</head>
-<body>
-  <h1>コメント投稿</h1>
+<!-- コメント投稿フォーム（必要に応じて表示） -->
+<div id="commentSection" style="margin-top: 2rem;">
+  <h2>この展示へのコメント</h2>
+  <textarea id="commentInput" rows="4" cols="40" placeholder="ご感想をお書きください..."></textarea><br />
+  <button id="commentSubmitBtn">送信</button>
+  <p id="commentStatus"></p>
+</div>
 
-  <textarea id="commentInput" placeholder="コメントを入力..." rows="4" cols="40"></textarea><br />
-  <button id="submitBtn">投稿</button>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
 
-  <h2>コメント一覧</h2>
-  <ul id="commentList"></ul>
+  // Firebase設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyAIhkMNJI2ld9PXD7SO8H0hQ7kKGg9wWnw",
+    authDomain: "gallery-us-ebe6e.firebaseapp.com",
+    projectId: "gallery-us-ebe6e",
+    storageBucket: "gallery-us-ebe6e.firebasestorage.app",
+    messagingSenderId: "783129386319",
+    appId: "1:783129386319:web:b11f5182b082c7032af93a"
+  };
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAIhkMNJI2ld9PXD7SO8H0hQ7kKGg9wWnw",
-      authDomain: "gallery-us-ebe6e.firebaseapp.com",
-      projectId: "gallery-us-ebe6e",
-      storageBucket: "gallery-us-ebe6e.firebasestorage.app",
-      messagingSenderId: "783129386319",
-      appId: "1:783129386319:web:b11f5182b082c7032af93a"
-    };
+  // 仮：roomConfigは既に読み込まれていると仮定（main.jsなどから）
+  const roomConfig = {
+    roomId: "room1",
+    ownerUid: "出展者のUIDをここに",
+    allowComments: true
+  };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  // コメント欄の表示切り替え
+  const section = document.getElementById("commentSection");
+  const status = document.getElementById("commentStatus");
+  if (!roomConfig.allowComments) {
+    section.style.display = "none";
+  }
 
-    const commentInput = document.getElementById("commentInput");
-    const commentList = document.getElementById("commentList");
+  let currentUser = null;
 
-    // コメントをFirestoreに追加
-    document.getElementById("submitBtn").addEventListener("click", async () => {
-      const text = commentInput.value.trim();
-      if (text === "") return;
-      await addDoc(collection(db, "comments"), {
-        text,
-        createdAt: serverTimestamp()
-      });
-      commentInput.value = "";
-      loadComments();  // 再読み込み
-    });
+  // ログイン状態を取得
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+  });
 
-    // コメント一覧を読み出して表示
-    async function loadComments() {
-      commentList.innerHTML = "";
-      const q = query(collection(db, "comments"), orderBy("createdAt", "desc"));
-      const snapshot = await getDocs(q);
-      snapshot.forEach((doc) => {
-        const li = document.createElement("li");
-        li.textContent = doc.data().text;
-        commentList.appendChild(li);
-      });
+  // コメント送信処理
+  document.getElementById("commentSubmitBtn").addEventListener("click", async () => {
+    const text = document.getElementById("commentInput").value.trim();
+    if (text === "") {
+      status.textContent = "コメントを入力してください。";
+      return;
     }
 
-    // 初回読み込み
-    loadComments();
-  </script>
-</body>
-</html>
+    try {
+      await addDoc(collection(db, `rooms/${roomConfig.roomId}/comments`), {
+        text,
+        createdAt: serverTimestamp(),
+        authorUid: currentUser?.uid || null,
+        authorName: currentUser?.displayName || "匿名",
+        targetUid: roomConfig.ownerUid,
+        isRead: false,
+        roomId: roomConfig.roomId
+      });
+      status.textContent = "コメントを送信しました。ありがとうございました！";
+      document.getElementById("commentInput").value = "";
+    } catch (e) {
+      console.error("コメント送信エラー:", e);
+      status.textContent = "送信に失敗しました。もう一度お試しください。";
+    }
+  });
+</script>
