@@ -15,12 +15,29 @@
       background-color: #f0f0f0;
       white-space: pre-wrap;
     }
+    #previewArea img {
+      max-width: 100px;
+      margin-right: 10px;
+    }
+    #previewArea div {
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
-  <h1>画像アップロード（Room1）</h1>
+  <h1>画像アップロード</h1>
+
+  <label for="roomSelect">アップロード先の部屋:</label>
+  <select id="roomSelect">
+    <option disabled selected>読み込み中...</option>
+  </select>
+
+  <br><br>
+
   <input type="file" id="fileInput" multiple accept="image/*" />
   <button id="uploadBtn">アップロード</button>
+
+  <div id="previewArea"></div>
   <div id="log"></div>
 </body>
 </html>
