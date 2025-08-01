@@ -5,12 +5,12 @@ import { v4 as uuidv4 } from "https://cdn.skypack.dev/uuid";
 
 // ✅ Firebase設定（あなたのFirebase設定に置き換えてください）
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyAIhkMNJI2ld9PXD7SO8H0hQ7kKGg9wWnw",
+  authDomain: "gallery-us-ebe6e.firebaseapp.com",
+  projectId: "gallery-us-ebe6e",
+  storageBucket: "gallery-us-ebe6e.firebasestorage.app",
+  messagingSenderId: "783129386319",
+  appId: "1:783129386319:web:b11f5182b082c7032af93a"
 };
 
 const app = initializeApp(firebaseConfig);
