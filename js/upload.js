@@ -29,7 +29,7 @@ const roomSelect = document.getElementById("roomSelect");
 
 // ✅ portalConfig.json を読み込んで select を初期化
 async function populateRoomSelect() {
-  const response = await fetch("/portalConfig.json");
+  const response = await fetch("./portalConfig.json");
   const config = await response.json();
 
   roomSelect.innerHTML = "";
