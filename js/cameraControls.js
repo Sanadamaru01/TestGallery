@@ -65,33 +65,52 @@ export function setupCameraControls(camera, renderer, controlsTargetY, floor, sc
       lastCameraPos.copy(camera.position);
       lastCameraTarget.copy(controls.target);
 
+      // --- パネルクリック時の距離計算 ---
       const panelCenter = new THREE.Vector3();
       panel.getWorldPosition(panelCenter);
-
-      const panelNormal = new THREE.Vector3(0, 0, -1).applyQuaternion(panel.quaternion).normalize();
-
-      // --- 距離計算 ---
+      
+      const panelNormal = new THREE.Vector3(0, 0, -1)
+        .applyQuaternion(panel.quaternion)
+        .normalize();
+      
+      const panelWidth = panel.userData.size?.width || 1;
       const panelHeight = panel.userData.size?.height || 1;
-      const fixedLongSide = 3;
-      // --- アスペクト比に応じた距離補正 ---
-      const aspect = window.innerWidth / window.innerHeight;
-      let distanceScale = 1.0;
-      if (aspect < 1.0) {
-        // 縦長画面ほど遠ざける（例: aspect=0.5 → 約1.4倍遠く）
-        distanceScale = 1.0 + (1.0 - aspect) * 0.8;
+      const fov = THREE.MathUtils.degToRad(camera.fov);
+      
+      // ▼▼ ここから追加修正 ▼▼
+      function getEffectiveAspect() {
+        const header = document.getElementById('titleBar');
+        const headerHeight = header ? header.offsetHeight || 0 : 0;
+        const effectiveHeight = Math.max(window.innerHeight - headerHeight, 1);
+        return window.innerWidth / effectiveHeight;
       }
-
-      const baseDistance = -1.0;
-      const safetyMargin = -0.9;
-      const distance = (baseDistance * (panelHeight / fixedLongSide) + safetyMargin) * distanceScale;
-
-      // --- カメラ位置算出 ---
-      const camPos = panelCenter.clone().addScaledVector(panelNormal, distance);
+      const aspect = getEffectiveAspect();
+      // ▲▲ ここまで修正（元の "window.innerWidth / window.innerHeight" を置換）▲▲
+      
+      const distH = (panelHeight / 2) / Math.tan(fov / 2);
+      const distW = (panelWidth / 2) / (Math.tan(fov / 2) * aspect);
+      
+      let distance = Math.max(distH, distW) * 1.1; // ← const → let に変更
+      
+      const isPortraitScreen = window.innerHeight > window.innerWidth;
+      const isPortraitImage = panelHeight > panelWidth;
+      
+      if (isPortraitScreen && isPortraitImage) {
+        // 縦画面 × 縦写真 → 少し離す
+        distance *= 1.15;
+      } else if (isPortraitScreen && !isPortraitImage) {
+        // 縦画面 × 横写真 → 少し寄る
+        distance *= 0.85;
+      } else if (!isPortraitScreen && !isPortraitImage) {
+        // 横画面 × 横写真 → 少し離す
+        distance *= 1.1;
+      }
+      
+      // カメラ位置を算出
+      const camPos = panelCenter.clone().addScaledVector(panelNormal, -distance);
       camPos.y = camera.position.y;
-
-      const lookDir = panelCenter.clone().sub(camPos).normalize();
-      const lookAt = camPos.clone().add(lookDir);
-
+      
+      const lookAt = panelCenter.clone();
       cameraMover.moveCameraTo(lookAt, camPos);
       return;
     }
