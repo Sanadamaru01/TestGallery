@@ -1,5 +1,5 @@
 // RoomConfigLoaderFirestore.js
-// Firestore から room 設定と画像情報をまとめて取得する
+// Firestore から room 設定と画像情報をまとめて取得する（改善版）
 
 import { db } from './firebase.js';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
@@ -12,6 +12,8 @@ import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
  * @returns {Promise<{ config: Object, images: Array, raw: Object }>}
  */
 export async function loadRoomDataFromFirestore(roomId) {
+  if (!roomId) throw new Error('roomId が指定されていません');
+
   // rooms/{roomId} のドキュメント取得
   const roomRef = doc(db, 'rooms', roomId);
   const roomSnap = await getDoc(roomRef);
@@ -28,9 +30,13 @@ export async function loadRoomDataFromFirestore(roomId) {
     wallHeight: roomData.wallHeight,
     fixedLongSide: roomData.fixedLongSide,
     backgroundColor: roomData.backgroundColor,
-    texturePaths: roomData.texturePaths,
-    roomTitle: roomData.roomTitle
+    texturePaths: roomData.texturePaths || {},
+    roomTitle: roomData.roomTitle || 'Untitled Room'
   };
+
+  // Firestore の Timestamp を JS Date に変換
+  const startDate = roomData.startDate?.toDate?.() ?? null;
+  const endDate = roomData.endDate?.toDate?.() ?? null;
 
   // -------- images サブコレクション --------
   const imagesRef = collection(db, 'rooms', roomId, 'images');
@@ -39,19 +45,8 @@ export async function loadRoomDataFromFirestore(roomId) {
   const images = imagesSnap.docs.map(docSnap => {
     const d = docSnap.data();
     return {
-      file: d.file,      // Storage URL or file name
-      title: d.title,
-      caption: d.caption,
-      author: d.author,
-      createdAt: d.createdAt,
-      updatedAt: d.updatedAt
-    };
-  });
-
-  // -------- JSON版と同じ返し方を維持 --------
-  return {
-    config,
-    images,
-    raw: roomData
-  };
-}
+      file: d.file || '',
+      title: d.title || '',
+      caption: d.caption || '',
+      author: d.author || '',
+      createdAt
