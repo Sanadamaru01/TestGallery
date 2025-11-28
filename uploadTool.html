@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>UploadTool</title>
+  <script type="module" src="./js/uploadTool.js"></script>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; }
+    #log { margin-top: 1rem; padding: 1rem; background-color: #f0f0f0; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+    #previewArea div { margin-bottom: 1rem; }
+    #previewArea img { max-width: 100px; margin-right: 10px; vertical-align: middle; }
+    .progress-bar { width: 100px; height: 10px; background-color: #ddd; display: inline-block; vertical-align: middle; margin-left: 10px; }
+    .progress-fill { height: 100%; background-color: #4caf50; width: 0%; }
+  </style>
+</head>
+<body>
+  <h1>UploadTool</h1>
+
+  <!-- ルーム選択・編集 -->
+  <label for="roomSelect">アップロード先の部屋:</label>
+  <select id="roomSelect">
+    <option disabled selected>読み込み中...</option>
+  </select>
+  <input type="text" id="roomTitleInput" placeholder="ルームタイトル修正">
+  <button id="updateRoomBtn">更新</button>
+  <br><br>
+
+  <!-- テクスチャ選択 -->
+  <label>テクスチャ変更:</label>
+  壁:<input type="file" id="wallTexture" accept="image/*">
+  床:<input type="file" id="floorTexture" accept="image/*">
+  天井:<input type="file" id="ceilingTexture" accept="image/*">
+  扉:<input type="file" id="doorTexture" accept="image/*">
+  <br><br>
+
+  <!-- ファイル選択 -->
+  <input type="file" id="fileInput" multiple accept="image/*">
+  <button id="uploadBtn">アップロード</button>
+
+  <!-- プレビュー -->
+  <div id="previewArea"></div>
+
+  <!-- ログ -->
+  <div id="log"></div>
+</body>
+</html>
