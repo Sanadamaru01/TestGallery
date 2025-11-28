@@ -22,15 +22,20 @@
     <option disabled selected>読み込み中...</option>
   </select>
   <input type="text" id="roomTitleInput" placeholder="ルームタイトル修正">
-  <button id="updateRoomBtn">更新</button>
+  <button id="updateRoomBtn">ルーム更新</button>
   <br><br>
 
-  <!-- テクスチャ選択 -->
+  <!-- テクスチャ選択（DB更新のみ） -->
   <label>テクスチャ変更:</label>
-  壁:<input type="file" id="wallTexture" accept="image/*">
-  床:<input type="file" id="floorTexture" accept="image/*">
-  天井:<input type="file" id="ceilingTexture" accept="image/*">
-  扉:<input type="file" id="doorTexture" accept="image/*">
+  壁:
+  <select id="wallTexture"></select>
+  床:
+  <select id="floorTexture"></select>
+  天井:
+  <select id="ceilingTexture"></select>
+  扉:
+  <select id="doorTexture"></select>
+  <button id="updateTextureBtn">テクスチャ更新</button>
   <br><br>
 
   <!-- ファイル選択 -->
