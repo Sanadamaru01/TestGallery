@@ -153,13 +153,14 @@ async function populateTextureSelect(storagePath, selectEl) {
     const res = await listAll(listRef);
     // items は Storage のファイル references
     for (const itemRef of res.items) {
-      // option.value には Storage 上の相対パスを入れておく（例: Share/Wall/tex1.webp）
+      console.log("[DEBUG] 取得ファイル:", itemRef.fullPath);
       const relativePath = `${storagePath}/${itemRef.name}`;
       const opt = document.createElement("option");
       opt.value = relativePath;
       opt.textContent = itemRef.name;
       selectEl.appendChild(opt);
     }
+
     // もし items が空なら注記
     if (res.items.length === 0) {
       const note = document.createElement("option");
@@ -175,7 +176,9 @@ async function populateTextureSelect(storagePath, selectEl) {
     selectEl.appendChild(errOpt);
   }
 }
-loadTextures();
+window.addEventListener("DOMContentLoaded", () => {
+  loadTextures();
+});
 
 // -------------------------------------------------
 // ルーム更新（タイトル）
