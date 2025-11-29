@@ -128,10 +128,10 @@ function selectOptionByValue(selectEl, value) {
 async function loadTextures() {
   try {
     log("🖼️ テクスチャ一覧を Storage (Share) から取得しています...");
-    await populateTextureSelect("Share/Wall", wallTexture);
-    await populateTextureSelect("Share/Floor", floorTexture);
-    await populateTextureSelect("Share/Ceiling", ceilingTexture);
-    await populateTextureSelect("Share/Door", doorTexture);
+    await populateTextureSelect("share/Wall", wallTexture);
+    await populateTextureSelect("share/Floor", floorTexture);
+    await populateTextureSelect("share/Ceiling", ceilingTexture);
+    await populateTextureSelect("share/Door", doorTexture);
     log("✅ テクスチャ一覧取得完了");
     // 選択中の room があれば再描画（room 側の値を反映）
     await onRoomChange();
