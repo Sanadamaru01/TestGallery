@@ -1,5 +1,5 @@
 // firebaseStorage.js
-import { ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { storage } from "./firebaseApp.js";
 
 export async function uploadImage(storagePath, blob, onProgress) {
@@ -21,4 +21,9 @@ export async function uploadImage(storagePath, blob, onProgress) {
             }
         );
     });
+}
+
+export async function deleteImage(storagePath) {
+    const storageRef = ref(storage, storagePath);
+    await deleteObject(storageRef);
 }
