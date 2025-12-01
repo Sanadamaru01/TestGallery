@@ -3,21 +3,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-// 元コードと同じ設定値を使用
+// 元コードと同じ設定値
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",  // <- 自分の値に置き換える
+  apiKey: "YOUR_API_KEY",              // ← 元コードのまま
   authDomain: "gallery-us-ebe6e.firebaseapp.com",
   projectId: "gallery-us-ebe6e",
   storageBucket: "gallery-us-ebe6e.appspot.com",
 };
 
-console.log("firebaseInit loaded");
+// ログ出力で確認
+console.log("[DEBUG] firebaseInit loaded, config:", firebaseConfig);
 
 // Firebase 初期化
 export const app = initializeApp(firebaseConfig);
-console.log("initializeApp done");
+console.log("[DEBUG] Firebase app initialized:", app);
 
-// Firestore / Storage も同時にエクスポートして分割モジュールで利用可能にする
+// Firestore / Storage も同時にエクスポート
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-console.log("Firestore & Storage initialized");
+console.log("[DEBUG] Firestore & Storage initialized");
