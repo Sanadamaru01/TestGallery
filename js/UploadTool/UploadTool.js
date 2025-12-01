@@ -1,4 +1,6 @@
-// UploadTool.js
+// uploadTool.js - Upload + 管理 (テクスチャ取得含む)
+// 必要: Firebase (Firestore/Storage) と pica を CDN から読み込みます。
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore, collection, getDocs, doc, getDoc,
@@ -11,7 +13,7 @@ import pica from "https://cdn.skypack.dev/pica";
 
 // -------------------- Firebase 設定 --------------------
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // <- 置き換え
+  apiKey: "YOUR_API_KEY", // <- ここは自分の値に差し替えてください
   authDomain: "gallery-us-ebe6e.firebaseapp.com",
   projectId: "gallery-us-ebe6e",
   storageBucket: "gallery-us-ebe6e.firebasestorage.app",
@@ -20,24 +22,37 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+// -------------------- DOM --------------------
+const roomSelect = document.getElementById("roomSelect");
+const roomTitleInput = document.getElementById("roomTitleInput");
+const updateRoomBtn = document.getElementById("updateRoomBtn");
+
+const wallTexture = document.getElementById("wallTexture");
+const floorTexture = document.getElementById("floorTexture");
+const ceilingTexture = document.getElementById("ceilingTexture");
+const doorTexture = document.getElementById("doorTexture");
+const updateTextureBtn = document.getElementById("updateTextureBtn");
+
+const fileInput = document.getElementById("fileInput");
+const previewArea = document.getElementById("previewArea");
+const uploadBtn = document.getElementById("uploadBtn");
+
+const logArea = document.getElementById("log");
+
 // -------------------- ユーティリティ --------------------
-export function log(msg, logArea) {
+function log(msg) {
   const t = new Date().toLocaleString();
-  if (logArea) logArea.textContent = `[${t}] ${msg}\n` + logArea.textContent;
+  logArea.textContent = `[${t}] ${msg}\n` + logArea.textContent;
   console.log(msg);
 }
-export function escapeHtml(s) {
+function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function selectOptionByValue(selectEl, value) {
-  if (!selectEl || !value) return;
-  const opts = Array.from(selectEl.options);
-  const found = opts.find(o => o.value === value);
-  if (found) selectEl.value = value;
-}
 
-// -------------------- テクスチャ取得 --------------------
-export async function tryListAllWithFallbacks(storagePath) {
+// -------------------- テクスチャ取得（耐性あり） --------------------
+// storagePath の大文字小文字問題に対処するため、候補パスを順に試す。
+// 例: "Share/Wall" が無ければ "share/Wall" を試す。
+async function tryListAllWithFallbacks(storagePath) {
   const tried = [];
   const parts = storagePath.split('/');
   const prefixes = [parts[0], parts[0].toLowerCase(), parts[0].toUpperCase()];
@@ -47,20 +62,30 @@ export async function tryListAllWithFallbacks(storagePath) {
     try {
       const listRef = ref(storage, pathCandidate);
       const res = await listAll(listRef);
-      if (res.items && res.items.length > 0) return { path: pathCandidate, res };
-    } catch (e) {}
+      if (res.items && res.items.length > 0) {
+        return { path: pathCandidate, res };
+      }
+      // if zero items, still continue to other candidates
+    } catch (e) {
+      // continue to next candidate
+    }
   }
+  // none found: try original and return last result (may throw)
   try {
     const listRef = ref(storage, storagePath);
     const res = await listAll(listRef);
     return { path: storagePath, res };
   } catch (e) {
+    // throw to caller
     throw new Error(`listAll failed for candidates: ${tried.join(', ')} - ${e.message}`);
   }
 }
 
-export async function populateTextureSelect(storagePath, selectEl, logArea) {
-  if (!selectEl) return;
+async function populateTextureSelect(storagePath, selectEl) {
+  if (!selectEl) {
+    console.warn(`[populateTextureSelect] selectEl not found for ${storagePath}`);
+    return;
+  }
   selectEl.innerHTML = "";
   const emptyOpt = document.createElement("option");
   emptyOpt.value = "";
@@ -69,12 +94,14 @@ export async function populateTextureSelect(storagePath, selectEl, logArea) {
 
   try {
     const { path: usedPath, res } = await tryListAllWithFallbacks(storagePath);
+    const names = res.items.map(i => i.fullPath || i.name);
+    console.log(`[DEBUG] ${storagePath} -> using ${usedPath}, items:`, names);
     if (!res.items || res.items.length === 0) {
       const note = document.createElement("option");
       note.value = "";
       note.textContent = "(Share にファイルがありません)";
       selectEl.appendChild(note);
-      log(`⚠️ ${storagePath} にファイルが見つかりませんでした（候補: ${usedPath}）`, logArea);
+      log(`⚠️ ${storagePath} にファイルが見つかりませんでした（候補: ${usedPath}）`);
       return;
     }
     for (const itemRef of res.items) {
@@ -84,28 +111,30 @@ export async function populateTextureSelect(storagePath, selectEl, logArea) {
       opt.textContent = itemRef.name;
       selectEl.appendChild(opt);
     }
-    log(`✅ ${usedPath} から ${res.items.length} 件のテクスチャを取得しました`, logArea);
+    log(`✅ ${usedPath} から ${res.items.length} 件のテクスチャを取得しました`);
   } catch (err) {
-    log(`❌ ${storagePath} の一覧取得エラー: ${err.message}`, logArea);
+    log(`❌ ${storagePath} の一覧取得エラー: ${err.message}`);
     const errOpt = document.createElement("option");
     errOpt.value = "";
     errOpt.textContent = "(取得エラー)";
     selectEl.appendChild(errOpt);
+    console.error(err);
   }
 }
 
-export async function loadTextures(wallEl, floorEl, ceilingEl, doorEl, logArea) {
-  log("🖼️ テクスチャ一覧を Storage から取得...", logArea);
-  await populateTextureSelect("share/Wall", wallEl, logArea);
-  await populateTextureSelect("share/Floor", floorEl, logArea);
-  await populateTextureSelect("share/Ceiling", ceilingEl, logArea);
-  await populateTextureSelect("share/Door", doorEl, logArea);
-  log("✅ テクスチャ一覧取得完了", logArea);
+async function loadTextures() {
+  log("🖼️ テクスチャ一覧を Storage (Share) から取得しています...");
+  // フォルダ名は環境に合わせて候補を探索します（Share / share 等）
+  await populateTextureSelect("share/Wall", wallTexture);
+  await populateTextureSelect("share/Floor", floorTexture);
+  await populateTextureSelect("share/Ceiling", ceilingTexture);
+  await populateTextureSelect("share/Door", doorTexture);
+  log("✅ テクスチャ一覧取得完了");
 }
 
-// -------------------- ルーム操作 --------------------
-export async function loadRooms(roomSelect, onRoomChangeCallback, logArea) {
-  log("🚪 部屋一覧読み込み開始...", logArea);
+// -------------------- ルーム一覧取得 --------------------
+async function loadRooms() {
+  log("🚪 部屋一覧読み込み開始...");
   try {
     const snap = await getDocs(collection(db, "rooms"));
     roomSelect.innerHTML = "";
@@ -117,84 +146,253 @@ export async function loadRooms(roomSelect, onRoomChangeCallback, logArea) {
     });
     if (roomSelect.options.length > 0) {
       roomSelect.selectedIndex = 0;
-      await onRoomChangeCallback();
+      await onRoomChange();
     }
-    log("✅ 部屋一覧を読み込みました", logArea);
+    log("✅ 部屋一覧を読み込みました");
   } catch (e) {
-    log("❌ 部屋一覧取得エラー:" + e.message, logArea);
+    log("❌ 部屋一覧取得エラー:" + e.message);
+    console.error(e);
   }
 }
+roomSelect.addEventListener("change", onRoomChange);
 
-export async function onRoomChange(roomSelect, roomTitleInput, wallEl, floorEl, ceilingEl, doorEl, logArea) {
+// -------------------- ルーム変更処理 --------------------
+async function onRoomChange() {
   const roomId = roomSelect.value;
   if (!roomId) return;
   try {
     const snap = await getDoc(doc(db, "rooms", roomId));
     if (!snap.exists()) {
       roomTitleInput.value = "";
-      log(`⚠️ ルーム ${roomId} が存在しません`, logArea);
+      log(`⚠️ ルーム ${roomId} が存在しません`);
       return;
     }
     const data = snap.data();
     roomTitleInput.value = data.roomTitle ?? "";
     const tp = data.texturePaths ?? {};
-    if (tp.wall) selectOptionByValue(wallEl, tp.wall);
-    if (tp.floor) selectOptionByValue(floorEl, tp.floor);
-    if (tp.ceiling) selectOptionByValue(ceilingEl, tp.ceiling);
-    if (tp.Door) selectOptionByValue(doorEl, tp.Door);
-    log(`ℹ️ ルーム情報読み込み: ${roomId}`, logArea);
-    await loadRoomImages(roomId, logArea);
+    log(`🎛️ 現在の texturePaths: ${JSON.stringify(tp)}`);
+    if (tp.wall) selectOptionByValue(wallTexture, tp.wall);
+    if (tp.floor) selectOptionByValue(floorTexture, tp.floor);
+    if (tp.ceiling) selectOptionByValue(ceilingTexture, tp.ceiling);
+    if (tp.Door) selectOptionByValue(doorTexture, tp.Door);
+
+    log(`ℹ️ ルーム情報読み込み: ${roomId}`);
+    await loadRoomImages(roomId);
   } catch (e) {
-    log("❌ ルーム情報読み込みエラー:" + e.message, logArea);
+    log("❌ ルーム情報読み込みエラー:" + e.message);
+    console.error(e);
+  }
+}
+function selectOptionByValue(selectEl, value) {
+  if (!selectEl || !value) return;
+  const opts = Array.from(selectEl.options);
+  const found = opts.find(o => o.value === value);
+  if (found) {
+    selectEl.value = value;
+  } else {
+    // 値が選択肢に無い場合は警告（旧データや大文字小文字不整合の可能性）
+    log(`⚠️ 選択肢に存在しないテクスチャが設定されています: ${value}`);
+    console.warn(`[selectOptionByValue] not found: ${value}`);
   }
 }
 
-// -------------------- 画像操作 --------------------
-export async function loadRoomImages(roomId, logArea) {
-  // UI非依存: データ取得だけ
+// -------------------- 既存画像読み込み --------------------
+async function loadRoomImages(roomId) {
+  previewArea.innerHTML = "";
+  log(`📂 ルーム ${roomId} の images を読み込みます...`);
   try {
     const snap = await getDocs(collection(db, `rooms/${roomId}/images`));
-    log(`📂 images ドキュメント数: ${snap.size}`, logArea);
-    const result = [];
+    log(`ℹ️ images ドキュメント数: ${snap.size}`);
+    if (snap.size === 0) {
+      const p = document.createElement("div");
+      p.textContent = "(画像はまだありません)";
+      previewArea.appendChild(p);
+      return;
+    }
     for (const docSnap of snap.docs) {
       const data = docSnap.data();
-      const fileName = data.file;
-      if (!fileName) continue;
-      const storageRef = ref(storage, `rooms/${roomId}/${fileName}`);
-      let downloadURL = "";
-      try { downloadURL = await getDownloadURL(storageRef); } catch {}
-      result.push({...data, docId: docSnap.id, downloadURL});
+      const fileName = data.file; // Firestore には file 名のみ保存されている想定
+      if (!fileName) {
+        log(`⚠️ images ドキュメント ${docSnap.id} に file フィールドがありません`);
+        continue;
+      }
+      const storagePath = `rooms/${roomId}/${fileName}`;
+      const storageRef = ref(storage, storagePath);
+      try {
+        const downloadURL = await getDownloadURL(storageRef);
+        createImageRow(roomId, docSnap.id, {...data, downloadURL, file: fileName}, true);
+      } catch (err) {
+        log(`downloadURL 取得失敗: ${err.message}`);
+        // 取得失敗でも空のプレビュー行を作る（管理上見えるように）
+        createImageRow(roomId, docSnap.id, {...data, downloadURL: "", file: fileName}, true);
+      }
     }
-    return result;
   } catch (err) {
-    log(`❌ images 読み込みエラー: ${err.message}`, logArea);
-    return [];
+    log(`❌ images 読み込みエラー: ${err.message}`);
+    console.error(err);
   }
 }
 
-export async function createImageRow(roomId, docId, data, isExisting = false) {
-  // UI操作用のrow生成も返す形にしてUI側でappendする
+// -------------------- 画像行作成（既存 or 新規プレビュー） --------------------
+function createImageRow(roomId, docId, data, isExisting = false) {
   const row = document.createElement("div");
   row.className = "file-row";
-  row._fileObject = data._fileObject || null;
-  row.innerHTML = `
-    <img src="${data.downloadURL || ''}" alt="${escapeHtml(data.title || '(no title)')}" width="120" height="120">
-    <div class="file-meta">
-      <input type="text" class="titleInput" placeholder="タイトル" value="${escapeHtml(data.title || '')}">
-      <input type="text" class="captionInput" placeholder="キャプション" value="${escapeHtml(data.caption || '')}">
-      <input type="text" class="authorInput" placeholder="作者" value="${escapeHtml(data.author || '')}">
-      <div style="display:flex;gap:6px;align-items:center;">
-        <button class="updateBtn">更新</button>
-        <button class="deleteBtn">削除</button>
-        <div class="statusText small" style="margin-left:6px"></div>
-      </div>
+  row.style.display = "flex";
+  row.style.gap = "12px";
+  row.style.alignItems = "flex-start";
+  row.style.marginBottom = "8px";
+
+  const img = document.createElement("img");
+  img.src = data.downloadURL || "";
+  img.alt = data.title || "(no title)";
+  img.style.width = "120px";
+  img.style.height = "120px";
+  img.style.objectFit = "cover";
+  img.style.background = "#f0f0f0";
+
+  const meta = document.createElement("div");
+  meta.className = "file-meta";
+  meta.style.display = "flex";
+  meta.style.flexDirection = "column";
+  meta.style.gap = "6px";
+  meta.innerHTML = `
+    <input type="text" class="titleInput" placeholder="タイトル" value="${escapeHtml(data.title || '')}">
+    <input type="text" class="captionInput" placeholder="キャプション" value="${escapeHtml(data.caption || '')}">
+    <input type="text" class="authorInput" placeholder="作者" value="${escapeHtml(data.author || '')}">
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="updateBtn">更新</button>
+      <button class="deleteBtn">削除</button>
+      <div class="statusText small" style="margin-left:6px"></div>
     </div>
   `;
-  return row;
+
+  // attach file object for new previews (so upload can find it)
+  if (!isExisting && data._fileObject) {
+    row._fileObject = data._fileObject;
+  }
+
+  // 更新
+  meta.querySelector(".updateBtn").addEventListener("click", async () => {
+    if (!isExisting) {
+      meta.querySelector(".statusText").textContent = "(未アップロードプレビュー)";
+      return;
+    }
+    const title = meta.querySelector(".titleInput").value.trim();
+    const caption = meta.querySelector(".captionInput").value.trim();
+    const author = meta.querySelector(".authorInput").value.trim();
+    try {
+      await updateDoc(doc(db, `rooms/${roomId}/images/${docId}`), {title, caption, author, updatedAt: serverTimestamp()});
+      meta.querySelector(".statusText").textContent = "更新済み";
+      log(`📝 ${title || docId} を更新しました`);
+    } catch (e) {
+      log(`❌ 更新失敗: ${e.message}`);
+    }
+  });
+
+  // 削除
+  meta.querySelector(".deleteBtn").addEventListener("click", async () => {
+    if (!confirm("本当に削除しますか？")) return;
+    try {
+      if (isExisting) {
+        // Firestore ドキュメント削除
+        await deleteDoc(doc(db, `rooms/${roomId}/images/${docId}`));
+        // Storage 削除（rooms/{roomId}/{fileName} ルールに基づく）
+        if (data.file) {
+          try {
+            const storageRef = ref(storage, `rooms/${roomId}/${data.file}`);
+            await deleteObject(storageRef);
+            log(`🗑️ Storage: rooms/${roomId}/${data.file} を削除しました`);
+          } catch (e) {
+            log(`⚠️ Storage 削除でエラー: ${e.message}`);
+          }
+        }
+      }
+      row.remove();
+      log(`❌ ${data.title || docId} を削除しました`);
+    } catch (err) {
+      log(`❌ 削除に失敗しました: ${err.message}`);
+    }
+  });
+
+  row.appendChild(img);
+  row.appendChild(meta);
+  previewArea.appendChild(row);
 }
 
-// -------------------- アップロード --------------------
-export async function resizeImageToWebp(file, maxLongSide = 1600, quality = 0.9) {
+// -------------------- ファイル選択 -> プレビュー表示 --------------------
+fileInput.addEventListener("change", () => {
+  // keep existing listed images; append previews for newly selected files
+  const files = Array.from(fileInput.files || []);
+  for (const file of files) {
+    const previewURL = URL.createObjectURL(file);
+    createImageRow(null, crypto.randomUUID(), {
+      title: file.name,
+      caption: "",
+      author: "",
+      downloadURL: previewURL,
+      _fileObject: file
+    }, false);
+  }
+});
+
+// -------------------- アップロード処理（新規プレビュー行のみアップロード） --------------------
+uploadBtn.addEventListener("click", async () => {
+  const roomId = roomSelect.value;
+  if (!roomId) { alert("ルームを選択してください"); return; }
+
+  // collect rows that have an attached file object (new previews)
+  const rows = Array.from(previewArea.querySelectorAll(".file-row"));
+  const uploadRows = rows.filter(r => r._fileObject);
+
+  if (uploadRows.length === 0) {
+    alert("アップロードする新規ファイルがありません");
+    return;
+  }
+
+  uploadBtn.disabled = true;
+  log(`🚀 アップロード開始 (${uploadRows.length}件)`);
+
+  let success = 0, fail = 0;
+  for (const row of uploadRows) {
+    const meta = row.querySelector(".file-meta");
+    const title = meta.querySelector(".titleInput").value.trim();
+    const caption = meta.querySelector(".captionInput").value.trim();
+    const author = meta.querySelector(".authorInput").value.trim();
+    const fileObj = row._fileObject;
+    try {
+      // resize -> blob
+      const blob = await resizeImageToWebp(fileObj, 1600, 0.9);
+      const fileName = crypto.randomUUID() + ".webp";
+      const storagePath = `rooms/${roomId}/${fileName}`;
+      const storageRef = ref(storage, storagePath);
+
+      // upload
+      await uploadBytesResumable(storageRef, blob);
+      // store metadata in Firestore (file: fileName only)
+      await addDoc(collection(db, `rooms/${roomId}/images`), {
+        file: fileName,
+        title, caption, author,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+
+      success++;
+      log(`✅ ${title || fileName} を保存しました (${storagePath})`);
+    } catch (e) {
+      fail++;
+      log(`❌ アップロード失敗: ${e.message}`);
+    }
+  }
+
+  log(`🎉 アップロード完了 — 成功: ${success}, 失敗: ${fail}`);
+  uploadBtn.disabled = false;
+
+  // リロードして一覧を最新化
+  await loadRoomImages(roomId);
+});
+
+// -------------------- 画像リサイズ（pica を利用） --------------------
+async function resizeImageToWebp(file, maxLongSide = 1600, quality = 0.9) {
   const img = new Image();
   const objectURL = URL.createObjectURL(file);
   img.src = objectURL;
@@ -220,52 +418,48 @@ export async function resizeImageToWebp(file, maxLongSide = 1600, quality = 0.9)
   return blob;
 }
 
-export async function uploadFiles(rows, roomId, logArea) {
-  let success = 0, fail = 0;
-  for (const row of rows) {
-    const meta = row.querySelector(".file-meta");
-    const title = meta.querySelector(".titleInput").value.trim();
-    const caption = meta.querySelector(".captionInput").value.trim();
-    const author = meta.querySelector(".authorInput").value.trim();
-    const fileObj = row._fileObject;
-    try {
-      const blob = await resizeImageToWebp(fileObj, 1600, 0.9);
-      const fileName = crypto.randomUUID() + ".webp";
-      const storageRef = ref(storage, `rooms/${roomId}/${fileName}`);
-      await uploadBytesResumable(storageRef, blob);
-      await addDoc(collection(db, `rooms/${roomId}/images`), {
-        file: fileName, title, caption, author,
-        createdAt: serverTimestamp(), updatedAt: serverTimestamp()
-      });
-      success++;
-      log(`✅ ${title || fileName} を保存しました`, logArea);
-    } catch (e) {
-      fail++;
-      log(`❌ アップロード失敗: ${e.message}`, logArea);
-    }
-  }
-  log(`🎉 アップロード完了 — 成功: ${success}, 失敗: ${fail}`, logArea);
-}
-
-// -------------------- ルーム更新 --------------------
-export async function updateRoomTitle(roomId, newTitle, roomSelect, logArea) {
+// -------------------- ルームタイトル更新 --------------------
+updateRoomBtn.addEventListener("click", async () => {
+  const roomId = roomSelect.value;
+  if (!roomId) { alert("ルームを選択してください"); return; }
+  const newTitle = roomTitleInput.value.trim();
+  if (newTitle.length === 0) { alert("空のタイトルは保存できません"); return; }
   try {
     await updateDoc(doc(db, "rooms", roomId), { roomTitle: newTitle, updatedAt: serverTimestamp() });
+    // UI の選択肢も更新
     const opt = Array.from(roomSelect.options).find(o => o.value === roomId);
     if (opt) opt.textContent = `${roomId} : ${newTitle}`;
-    log(`📝 ルームタイトル更新: ${newTitle}`, logArea);
-  } catch (e) { log(`❌ ルーム更新失敗: ${e.message}`, logArea); }
-}
+    log(`📝 ルームタイトル更新: ${newTitle}`);
+  } catch (e) {
+    log(`❌ ルーム更新失敗: ${e.message}`);
+  }
+});
 
-export async function updateTexturePaths(roomId, updates, logArea) {
+// -------------------- テクスチャ更新（DB 書換えのみ） --------------------
+updateTextureBtn.addEventListener("click", async () => {
+  const roomId = roomSelect.value;
+  if (!roomId) { alert("ルームを選択してください"); return; }
+  const updates = {};
+  if (wallTexture.value) updates["texturePaths.wall"] = wallTexture.value;
+  if (floorTexture.value) updates["texturePaths.floor"] = floorTexture.value;
+  if (ceilingTexture.value) updates["texturePaths.ceiling"] = ceilingTexture.value;
+  if (doorTexture.value) updates["texturePaths.Door"] = doorTexture.value;
+  if (Object.keys(updates).length === 0) { alert("テクスチャが選択されていません"); return; }
+  updates.updatedAt = serverTimestamp();
   try {
-    const updateData = {};
-    if (updates.wall) updateData["texturePaths.wall"] = updates.wall;
-    if (updates.floor) updateData["texturePaths.floor"] = updates.floor;
-    if (updates.ceiling) updateData["texturePaths.ceiling"] = updates.ceiling;
-    if (updates.door) updateData["texturePaths.Door"] = updates.door;
-    updateData.updatedAt = serverTimestamp();
-    await updateDoc(doc(db, "rooms", roomId), updateData);
-    log(`📝 テクスチャ更新完了: ${JSON.stringify(updateData)}`, logArea);
-  } catch(e) { log(`❌ テクスチャ更新失敗: ${e.message}`, logArea); }
-}
+    await updateDoc(doc(db, "rooms", roomId), updates);
+    log(`📝 テクスチャ更新完了: ${JSON.stringify(updates)}`);
+  } catch (e) {
+    log(`❌ テクスチャ更新失敗: ${e.message}`);
+  }
+});
+
+// -------------------- 初期化（先にテクスチャ -> ルーム） --------------------
+window.addEventListener("DOMContentLoaded", async () => {
+  try {
+    await loadTextures();
+  } catch (e) {
+    console.warn("loadTextures error:", e);
+  }
+  await loadRooms();
+});
