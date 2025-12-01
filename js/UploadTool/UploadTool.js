@@ -1,73 +1,132 @@
 // UploadTool.js
-// 画像変換 → Storageアップロード → Firestore登録 の制御
 import { loadImageFile, loadImageElement, resizeAndConvert } from "./imageUtils.js";
 import { uploadImage, deleteImage } from "./firebaseStorage.js";
-import { saveImageMetadata, updateImageMetadata, deleteImageMetadata, getRoomImages, getRooms, updateRoom } from "./firebaseFirestore.js";
-import { handleFileSelect, updateProgressBar } from "./uiHandlers.js";
+import { saveImageMetadata, updateImageMetadata, deleteImageMetadata, getRooms, getRoomImages, updateRoomTitle, updateRoomTextures } from "./firebaseFirestore.js";
+import { setupFileInput, createProgressBar, createImageRow } from "./uiHandlers.js";
 
-/**
- * メインアップロード処理
- */
-export async function uploadArtwork({ file, roomId, title, caption, author, onProgress }) {
-    const dataUrl = await loadImageFile(file);
-    const img = await loadImageElement(dataUrl);
-    const resizedBlob = await resizeAndConvert(img, 600, 0.85);
+// グローバル UI 要素
+const roomSelect = document.getElementById("roomSelect");
+const roomTitleInput = document.getElementById("roomTitleInput");
+const updateRoomBtn = document.getElementById("updateRoomBtn");
 
-    const imageId = crypto.randomUUID();
-    const storagePath = `rooms/${roomId}/${imageId}.jpg`;
+const wallTexture = document.getElementById("wallTexture");
+const floorTexture = document.getElementById("floorTexture");
+const ceilingTexture = document.getElementById("ceilingTexture");
+const doorTexture = document.getElementById("doorTexture");
+const updateTextureBtn = document.getElementById("updateTextureBtn");
 
-    const downloadUrl = await uploadImage(storagePath, resizedBlob, onProgress);
+const fileInput = document.getElementById("fileInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const previewArea = document.getElementById("previewArea");
+const logEl = document.getElementById("log");
 
-    await saveImageMetadata(roomId, imageId, { file: downloadUrl, title, caption, author });
+let currentRoomId = null;
 
-    return { imageId, downloadUrl };
+// ログ出力
+function log(msg) {
+    logEl.textContent += msg + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
 }
 
-/**
- * 画像削除
- */
-export async function removeArtwork(roomId, imageId, fileUrl) {
-    await deleteImage(fileUrl);
-    await deleteImageMetadata(roomId, imageId);
-}
-
-/**
- * ルーム一覧取得
- */
-export async function loadRoomList(selectElement) {
+// ルームセレクト生成
+async function loadRooms() {
     const rooms = await getRooms();
-    selectElement.innerHTML = rooms.map(r => `<option value="${r.id}">${r.roomTitle || r.id}</option>`).join("");
-    return rooms;
+    roomSelect.innerHTML = "";
+    rooms.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.id;
+        opt.textContent = r.roomTitle;
+        roomSelect.appendChild(opt);
+    });
+    if (rooms[0]) {
+        currentRoomId = rooms[0].id;
+        roomTitleInput.value = rooms[0].roomTitle;
+        loadRoomImages();
+    }
 }
 
-/**
- * ルーム画像一覧表示
- */
-export async function displayRoomImages(roomId, container) {
-    const images = await getRoomImages(roomId);
-    container.innerHTML = "";
-    images.forEach(img => {
-        const div = document.createElement("div");
-        div.style.border = "1px solid #ccc";
-        div.style.padding = "0.5rem";
-        div.style.margin = "0.5rem 0";
+roomSelect.addEventListener("change", () => {
+    currentRoomId = roomSelect.value;
+    loadRoomImages();
+});
 
-        div.innerHTML = `
-            <img src="${img.file}" style="width:100px; height:auto;">
-            <div>タイトル: ${img.title}</div>
-            <div>作者: ${img.author}</div>
-            <div>説明: ${img.caption}</div>
-            <button data-id="${img.id}" data-url="${img.file}">削除</button>
-        `;
+// ルームタイトル更新
+updateRoomBtn.addEventListener("click", async () => {
+    if (!currentRoomId) return;
+    await updateRoomTitle(currentRoomId, roomTitleInput.value);
+    log(`ルームタイトル更新: ${roomTitleInput.value}`);
+});
 
-        const btn = div.querySelector("button");
-        btn.addEventListener("click", async () => {
-            if (confirm("本当に削除しますか？")) {
-                await removeArtwork(roomId, img.id, img.file);
-                div.remove();
-            }
+// テクスチャ更新
+updateTextureBtn.addEventListener("click", async () => {
+    if (!currentRoomId) return;
+    await updateRoomTextures(currentRoomId, {
+        wall: wallTexture.value,
+        floor: floorTexture.value,
+        ceiling: ceilingTexture.value,
+        door: doorTexture.value
+    });
+    log("テクスチャ更新完了");
+});
+
+// ファイルアップロード
+let selectedFile = null;
+setupFileInput(fileInput, previewArea, (file) => selectedFile = file);
+
+uploadBtn.addEventListener("click", async () => {
+    if (!currentRoomId || !selectedFile) return;
+
+    const progressFill = createProgressBar(previewArea);
+
+    try {
+        const dataUrl = await loadImageFile(selectedFile);
+        const imgEl = await loadImageElement(dataUrl);
+        const blob = await resizeAndConvert(imgEl, 600, 0.85);
+
+        const imageId = crypto.randomUUID();
+        const storagePath = `rooms/${currentRoomId}/${imageId}.jpg`;
+        const downloadUrl = await uploadImage(storagePath, blob, (percent) => {
+            progressFill.style.width = percent + "%";
         });
 
-        container.appendChild(div);
+        await saveImageMetadata(currentRoomId, imageId, {
+            file: downloadUrl,
+            title: selectedFile.name,
+            caption: "",
+            author: ""
+        });
+
+        log(`アップロード完了: ${selectedFile.name}`);
+        loadRoomImages();
+    } catch (e) {
+        console.error(e);
+        log(`アップロード失敗: ${e.message}`);
+    }
+});
+
+// ルーム内画像一覧表示
+async function loadRoomImages() {
+    if (!currentRoomId) return;
+    previewArea.innerHTML = "";
+    const images = await getRoomImages(currentRoomId);
+    images.forEach(img => {
+        const row = createImageRow(img,
+            async (id) => { // 削除
+                await deleteImageMetadata(currentRoomId, id);
+                await deleteImage(`rooms/${currentRoomId}/${id}.jpg`);
+                log(`削除: ${id}`);
+                loadRoomImages();
+            },
+            async (id, data) => { // 更新
+                await updateImageMetadata(currentRoomId, id, data);
+                log(`更新: ${id}`);
+                loadRoomImages();
+            }
+        );
+        previewArea.appendChild(row);
     });
 }
+
+// 初期ロード
+loadRooms();
+log("UploadTool モジュールロード完了");
