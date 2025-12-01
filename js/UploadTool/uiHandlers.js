@@ -1,17 +1,19 @@
 // uiHandlers.js
-// UI操作（ファイル選択・プレビュー）だけを担当
-
 export function handleFileSelect(inputElement, previewElement, onFileLoaded) {
-    inputElement.addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // プレビュー
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            previewElement.src = ev.target.result;
-            if (onFileLoaded) onFileLoaded(file);
-        };
-        reader.readAsDataURL(file);
+    inputElement.addEventListener("change", e => {
+        const files = Array.from(e.target.files || []);
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const img = document.createElement("img");
+                img.src = ev.target.result;
+                img.style.width = "120px";
+                img.style.height = "120px";
+                img.style.objectFit = "cover";
+                previewElement.appendChild(img);
+                if (onFileLoaded) onFileLoaded(file);
+            };
+            reader.readAsDataURL(file);
+        });
     });
 }
