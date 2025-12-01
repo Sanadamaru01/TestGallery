@@ -5,6 +5,7 @@ export async function uploadImage(storagePath, blob, onProgress) {
     return new Promise((resolve, reject) => {
         const storageRef = ref(storage, storagePath);
         const uploadTask = uploadBytesResumable(storageRef, blob);
+
         uploadTask.on("state_changed",
             snapshot => {
                 if (onProgress) {
