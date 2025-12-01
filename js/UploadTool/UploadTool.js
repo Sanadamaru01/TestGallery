@@ -27,65 +27,82 @@ function log(msg) {
 // -------------------- 初期化 --------------------
 log("📢 UploadTool.js 読み込み完了");
 
-let roomsData = {}; // roomId -> room データ
+// -------------------- 部屋データ管理 --------------------
+let roomsData = {};
 
 async function loadRooms() {
-  log("📦 部屋リスト読み込み開始");
-  const rooms = await fs.getRooms(); // rooms コレクション取得
+  log("📂 Firestore から部屋リストを取得中...");
+  const rooms = await fs.getAllRooms(); // Firestore から rooms コレクションを取得する関数
   roomSelect.innerHTML = "";
-  rooms.forEach(r => {
-    roomsData[r.id] = r;
+  rooms.forEach(doc => {
+    const roomId = doc.id;
+    const data = doc.data();
+    roomsData[roomId] = data;
     const opt = document.createElement("option");
-    opt.value = r.id;
-    opt.textContent = r.roomTitle || r.id;
+    opt.value = roomId;
+    opt.textContent = roomId;
     roomSelect.appendChild(opt);
   });
-  log(`✅ ${rooms.length} 部屋を読み込み`);
+  log(`✅ 部屋リスト取得完了: ${Object.keys(roomsData).join(", ")}`);
 }
 
-// -------------------- 部屋選択時にフォーム反映 --------------------
+// -------------------- フォーム反映 --------------------
+function reflectRoomForm(roomId) {
+  const data = roomsData[roomId];
+  if (!data) {
+    log(`⚠️ roomId=${roomId} のデータがありません`);
+    return;
+  }
+  roomTitleInput.value = data.roomTitle || "";
+  wallTexture.value = data.texturePaths?.wall || "";
+  floorTexture.value = data.texturePaths?.floor || "";
+  ceilingTexture.value = data.texturePaths?.ceiling || "";
+  doorTexture.value = data.texturePaths?.door || "";
+  log(`✏️ roomId=${roomId} の情報をフォームに反映`);
+}
+
+// -------------------- 部屋選択変更 --------------------
 roomSelect.addEventListener("change", () => {
   const roomId = roomSelect.value;
-  if (!roomId) return;
-  const room = roomsData[roomId];
-  roomTitleInput.value = room.roomTitle || "";
-  wallTexture.value = room.texturePaths?.wall || "";
-  floorTexture.value = room.texturePaths?.floor || "";
-  ceilingTexture.value = room.texturePaths?.ceiling || "";
-  doorTexture.value = room.texturePaths?.door || "";
-  log(`✏️ ${room.roomTitle} の情報をフォームに反映`);
+  reflectRoomForm(roomId);
 });
 
-// -------------------- 部屋タイトル更新 --------------------
+// -------------------- ルームタイトル更新 --------------------
 updateRoomBtn.addEventListener("click", async () => {
   const roomId = roomSelect.value;
   if (!roomId) return alert("ルームを選択してください");
-  const newTitle = roomTitleInput.value.trim();
-  if (!newTitle) return alert("タイトルを入力してください");
-  await fs.updateRoom(roomId, { roomTitle: newTitle });
-  roomsData[roomId].roomTitle = newTitle;
-  roomSelect.querySelector(`option[value="${roomId}"]`).textContent = newTitle;
-  log(`✅ ${roomId} のタイトルを更新: ${newTitle}`);
+  const newTitle = roomTitleInput.value;
+  try {
+    await fs.updateRoom(roomId, { roomTitle: newTitle });
+    roomsData[roomId].roomTitle = newTitle;
+    log(`✅ roomId=${roomId} タイトルを更新: ${newTitle}`);
+  } catch (e) {
+    log(`❌ タイトル更新失敗: ${e.message}`);
+  }
 });
 
 // -------------------- テクスチャ更新 --------------------
 updateTextureBtn.addEventListener("click", async () => {
   const roomId = roomSelect.value;
   if (!roomId) return alert("ルームを選択してください");
-  const texturePaths = {
+  const newTextures = {
     wall: wallTexture.value,
     floor: floorTexture.value,
     ceiling: ceilingTexture.value,
-    door: doorTexture.value
+    door: doorTexture.value,
   };
-  await fs.updateRoom(roomId, { texturePaths });
-  roomsData[roomId].texturePaths = texturePaths;
-  log(`✅ ${roomId} のテクスチャ情報を更新`);
+  try {
+    await fs.updateRoom(roomId, { texturePaths: newTextures });
+    roomsData[roomId].texturePaths = newTextures;
+    log(`✅ roomId=${roomId} テクスチャ更新`);
+  } catch (e) {
+    log(`❌ テクスチャ更新失敗: ${e.message}`);
+  }
 });
 
 // -------------------- ファイル選択 -> プレビュー --------------------
 fileInput.addEventListener("change", () => {
-  log("📂 ファイル選択イベント発火");
+  log("📂 fileInput change 発火");
   const files = Array.from(fileInput.files || []);
   for (const file of files) {
     const previewURL = URL.createObjectURL(file);
@@ -100,7 +117,7 @@ fileInput.addEventListener("change", () => {
 
 // -------------------- プレビュー行作成 --------------------
 function createImageRow(roomId, docId, data, isExisting) {
-  log(`✏️ createImageRow: ${data.title || docId}`);
+  log(`✏️ createImageRow called: ${data.title || docId}`);
   const row = document.createElement("div");
   row.className = "file-row";
   const img = document.createElement("img");
@@ -113,19 +130,21 @@ function createImageRow(roomId, docId, data, isExisting) {
 
 // -------------------- アップロード処理 --------------------
 uploadBtn.addEventListener("click", async () => {
+  log("🚀 uploadBtn click 発火");
   const roomId = roomSelect.value;
   if (!roomId) return alert("ルームを選択してください");
 
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const uploadRows = rows.filter(r => r._fileObject);
-  if (uploadRows.length === 0) return alert("アップロードする新規ファイルがありません");
+  if (uploadRows.length === 0) return alert("アップロード対象なし");
 
   uploadBtn.disabled = true;
   let success = 0, fail = 0;
+
   for (const row of uploadRows) {
     const fileObj = row._fileObject;
     try {
-      log(`📤 アップロード開始: ${fileObj.name}`);
+      log(`📤 アップロード処理開始: ${fileObj.name}`);
       const blob = await resizeImageToWebp(fileObj);
       const fileName = crypto.randomUUID() + ".webp";
       const storagePath = `rooms/${roomId}/${fileName}`;
@@ -136,6 +155,7 @@ uploadBtn.addEventListener("click", async () => {
     } catch(e) {
       fail++;
       log(`❌ アップロード失敗: ${fileObj.name} / ${e.message}`);
+      console.error(e);
     }
   }
   uploadBtn.disabled = false;
@@ -151,7 +171,7 @@ async function resizeImageToWebp(file, maxLongSide = 1600, quality = 0.9) {
   await img.decode();
 
   const long = Math.max(img.width, img.height);
-  const scale = long > maxLongSide ? maxLongSide / long : 1;
+  const scale = long > maxLongSide ? (maxLongSide / long) : 1;
   const width = Math.round(img.width * scale);
   const height = Math.round(img.height * scale);
 
@@ -167,7 +187,7 @@ async function resizeImageToWebp(file, maxLongSide = 1600, quality = 0.9) {
   await pica().resize(sourceCanvas, targetCanvas);
   const blob = await new Promise(resolve => targetCanvas.toBlob(resolve, "image/webp", quality));
   URL.revokeObjectURL(objectURL);
-  log(`✅ リサイズ完了: ${file.name} -> ${width}x${height}`);
+  log(`✅ resizeImageToWebp 完了: ${file.name} -> ${width}x${height}`);
   return blob;
 }
 
@@ -175,5 +195,9 @@ async function resizeImageToWebp(file, maxLongSide = 1600, quality = 0.9) {
 window.addEventListener("DOMContentLoaded", async () => {
   log("📄 DOMContentLoaded 発火 - UploadTool 初期化開始");
   await loadRooms();
+  if (roomSelect.options.length > 0) {
+    roomSelect.selectedIndex = 0;
+    roomSelect.dispatchEvent(new Event("change"));
+  }
   log("📄 UploadTool 初期化完了");
 });
