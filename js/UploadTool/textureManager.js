@@ -1,8 +1,9 @@
 // textureManager.js
-import { log, selectOptionByValue } from './utils.js';
 import { getStorage, ref, listAll } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { app } from './firebaseInit.js';
+import { log } from './utils.js';
 
-const storage = getStorage();
+const storage = getStorage(app);
 
 async function tryListAllWithFallbacks(storagePath) {
   const tried = [];
@@ -14,19 +15,20 @@ async function tryListAllWithFallbacks(storagePath) {
     try {
       const listRef = ref(storage, pathCandidate);
       const res = await listAll(listRef);
-      if (res.items && res.items.length > 0) return { path: pathCandidate, res };
-    } catch {}
+      if (res.items && res.items.length > 0) {
+        return { path: pathCandidate, res };
+      }
+    } catch (e) {
+      // 次の候補へ
+    }
   }
-  try {
-    const listRef = ref(storage, storagePath);
-    const res = await listAll(listRef);
-    return { path: storagePath, res };
-  } catch (e) {
-    throw new Error(`listAll failed for candidates: ${tried.join(', ')} - ${e.message}`);
-  }
+  // 最終候補
+  const listRef = ref(storage, storagePath);
+  const res = await listAll(listRef);
+  return { path: storagePath, res };
 }
 
-export async function populateTextureSelect(storagePath, selectEl, logArea) {
+export async function populateTextureSelect(storagePath, selectEl) {
   if (!selectEl) return;
   selectEl.innerHTML = "";
   const emptyOpt = document.createElement("option");
@@ -41,7 +43,7 @@ export async function populateTextureSelect(storagePath, selectEl, logArea) {
       note.value = "";
       note.textContent = "(Share にファイルがありません)";
       selectEl.appendChild(note);
-      log(`⚠️ ${storagePath} にファイルが見つかりません（候補: ${usedPath}）`, logArea);
+      log(`⚠️ ${storagePath} にファイルが見つかりませんでした（候補: ${usedPath}）`);
       return;
     }
     for (const itemRef of res.items) {
@@ -51,9 +53,9 @@ export async function populateTextureSelect(storagePath, selectEl, logArea) {
       opt.textContent = itemRef.name;
       selectEl.appendChild(opt);
     }
-    log(`✅ ${usedPath} から ${res.items.length} 件のテクスチャを取得しました`, logArea);
+    log(`✅ ${usedPath} から ${res.items.length} 件のテクスチャを取得しました`);
   } catch (err) {
-    log(`❌ ${storagePath} の一覧取得エラー: ${err.message}`, logArea);
+    log(`❌ ${storagePath} の一覧取得エラー: ${err.message}`);
     const errOpt = document.createElement("option");
     errOpt.value = "";
     errOpt.textContent = "(取得エラー)";
@@ -61,9 +63,11 @@ export async function populateTextureSelect(storagePath, selectEl, logArea) {
   }
 }
 
-export async function loadAllTextures(wallEl, floorEl, ceilingEl, doorEl, logArea) {
-  await populateTextureSelect("share/Wall", wallEl, logArea);
-  await populateTextureSelect("share/Floor", floorEl, logArea);
-  await populateTextureSelect("share/Ceiling", ceilingEl, logArea);
-  await populateTextureSelect("share/Door", doorEl, logArea);
+export async function loadTextures(selectors) {
+  log("🖼️ テクスチャ一覧を Storage (Share) から取得しています...");
+  await populateTextureSelect("share/Wall", selectors.wallTexture);
+  await populateTextureSelect("share/Floor", selectors.floorTexture);
+  await populateTextureSelect("share/Ceiling", selectors.ceilingTexture);
+  await populateTextureSelect("share/Door", selectors.doorTexture);
+  log("✅ テクスチャ一覧取得完了");
 }
