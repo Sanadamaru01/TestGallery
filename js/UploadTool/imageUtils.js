@@ -1,14 +1,25 @@
-// File → DataURL
+// imageUtils.js
+// ファイル読み込み・リサイズ・変換などを担当
+
+/**
+ * File → DataURL
+ * @param {File} file
+ * @returns {Promise<string>} dataUrl
+ */
 export function loadImageFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result);
+        reader.onload = (e) => resolve(e.target.result);
         reader.onerror = reject;
         reader.readAsDataURL(file);
     });
 }
 
-// DataURL → HTMLImageElement
+/**
+ * DataURL → HTMLImageElement
+ * @param {string} dataUrl
+ * @returns {Promise<HTMLImageElement>}
+ */
 export function loadImageElement(dataUrl) {
     return new Promise((resolve, reject) => {
         const img = new Image();
@@ -18,22 +29,21 @@ export function loadImageElement(dataUrl) {
     });
 }
 
-// リサイズ＆JPEG変換（長辺600px）
-export async function resizeAndConvert(img, maxLongSide = 600, quality = 0.85) {
-    const long = Math.max(img.width, img.height);
-    const scale = long > maxLongSide ? maxLongSide / long : 1;
-    const width = Math.round(img.width * scale);
-    const height = Math.round(img.height * scale);
-
-    const sourceCanvas = document.createElement("canvas");
-    sourceCanvas.width = img.width;
-    sourceCanvas.height = img.height;
-    sourceCanvas.getContext("2d").drawImage(img, 0, 0);
-
-    const targetCanvas = document.createElement("canvas");
-    targetCanvas.width = width;
-    targetCanvas.height = height;
-    targetCanvas.getContext("2d").drawImage(sourceCanvas, 0, 0, width, height);
-
-    return new Promise(resolve => targetCanvas.toBlob(resolve, "image/jpeg", quality));
+/**
+ * リサイズ＆JPEG変換
+ * @param {HTMLImageElement} img
+ * @param {number} maxLongSide
+ * @param {number} quality
+ * @returns {Promise<Blob>}
+ */
+export function resizeAndConvert(img, maxLongSide = 600, quality = 0.85) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ratio = Math.min(maxLongSide / img.width, maxLongSide / img.height, 1);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', quality);
+    });
 }
