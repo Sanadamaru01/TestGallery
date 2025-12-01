@@ -1,13 +1,18 @@
 // imageRowManager.js
 import { log, escapeHtml, resizeImageToWebp } from './utils.js';
-import { getFirestore, doc, collection, updateDoc, addDoc, serverTimestamp, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { app } from './firebaseInit.js';
+import { 
+  getFirestore, doc, collection, updateDoc, addDoc, serverTimestamp, getDocs, deleteDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { 
+  getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-const db = getFirestore();
-const storage = getStorage();
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-// 画像行作成
-export function createImageRow(previewArea, roomId, docId, data, isExisting = false, logArea) {
+// -------------------- 画像行作成 --------------------
+export function createImageRow(previewArea, roomId, docId, data, isExisting = false, logArea = null) {
   const row = document.createElement("div");
   row.className = "file-row";
 
@@ -34,7 +39,7 @@ export function createImageRow(previewArea, roomId, docId, data, isExisting = fa
 
   if (!isExisting && data._fileObject) row._fileObject = data._fileObject;
 
-  // 更新
+  // 更新ボタン
   meta.querySelector(".updateBtn").addEventListener("click", async () => {
     if (!isExisting) {
       meta.querySelector(".statusText").textContent = "(未アップロードプレビュー)";
@@ -44,7 +49,7 @@ export function createImageRow(previewArea, roomId, docId, data, isExisting = fa
     const caption = meta.querySelector(".captionInput").value.trim();
     const author = meta.querySelector(".authorInput").value.trim();
     try {
-      await updateDoc(doc(db, `rooms/${roomId}/images/${docId}`), {title, caption, author, updatedAt: serverTimestamp()});
+      await updateDoc(doc(db, `rooms/${roomId}/images/${docId}`), { title, caption, author, updatedAt: serverTimestamp() });
       meta.querySelector(".statusText").textContent = "更新済み";
       log(`📝 ${title || docId} を更新しました`, logArea);
     } catch (e) {
@@ -52,7 +57,7 @@ export function createImageRow(previewArea, roomId, docId, data, isExisting = fa
     }
   });
 
-  // 削除
+  // 削除ボタン
   meta.querySelector(".deleteBtn").addEventListener("click", async () => {
     if (!confirm("本当に削除しますか？")) return;
     try {
@@ -80,8 +85,8 @@ export function createImageRow(previewArea, roomId, docId, data, isExisting = fa
   previewArea.appendChild(row);
 }
 
-// ルームの images 読み込み
-export async function loadRoomImages(previewArea, roomId, logArea) {
+// -------------------- ルームの images 読み込み --------------------
+export async function loadRoomImages(previewArea, roomId, logArea = null) {
   previewArea.innerHTML = "";
   try {
     const snap = await getDocs(collection(db, `rooms/${roomId}/images`));
@@ -95,7 +100,10 @@ export async function loadRoomImages(previewArea, roomId, logArea) {
     for (const docSnap of snap.docs) {
       const data = docSnap.data();
       const fileName = data.file;
-      if (!fileName) { log(`⚠️ images ドキュメント ${docSnap.id} に file フィールドがありません`, logArea); continue; }
+      if (!fileName) { 
+        log(`⚠️ images ドキュメント ${docSnap.id} に file フィールドがありません`, logArea); 
+        continue; 
+      }
       const storageRef = ref(storage, `rooms/${roomId}/${fileName}`);
       let downloadURL = "";
       try { downloadURL = await getDownloadURL(storageRef); } catch {}
@@ -106,8 +114,8 @@ export async function loadRoomImages(previewArea, roomId, logArea) {
   }
 }
 
-// ファイル選択 → プレビュー
-export function handleFileSelect(fileInput, previewArea) {
+// -------------------- ファイル選択 → プレビュー --------------------
+export function handleFileSelect(fileInput, previewArea, logArea = null) {
   fileInput.addEventListener("change", () => {
     const files = Array.from(fileInput.files || []);
     for (const file of files) {
@@ -118,13 +126,13 @@ export function handleFileSelect(fileInput, previewArea) {
         author: "",
         downloadURL: previewURL,
         _fileObject: file
-      }, false);
+      }, false, logArea);
     }
   });
 }
 
-// アップロード処理
-export async function uploadFiles(previewArea, roomId, logArea) {
+// -------------------- アップロード処理 --------------------
+export async function uploadFiles(previewArea, roomId, logArea = null) {
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const uploadRows = rows.filter(r => r._fileObject);
   if (uploadRows.length === 0) { alert("アップロードする新規ファイルがありません"); return; }
