@@ -4,6 +4,7 @@ import {
   createImageRow, uploadFiles, updateRoomTitle, updateTexturePaths,
 } from './UploadTool.js';
 
+// -------------------- DOM 要素取得 --------------------
 const roomSelect = document.getElementById("roomSelect");
 const roomTitleInput = document.getElementById("roomTitleInput");
 const updateRoomBtn = document.getElementById("updateRoomBtn");
@@ -22,27 +23,37 @@ const logArea = document.getElementById("log");
 
 // -------------------- 初期化 --------------------
 window.addEventListener("DOMContentLoaded", async () => {
-  try { await loadTextures(); } catch(e){ console.warn("loadTextures error:", e); }
-  await loadRooms();
+  try { 
+    await loadTextures(wallTexture, floorTexture, ceilingTexture, doorTexture, logArea); 
+  } catch(e){ console.warn("loadTextures error:", e); }
+
+  await loadRooms(
+    roomSelect,
+    () => onRoomChange(roomSelect, roomTitleInput, wallTexture, floorTexture, ceilingTexture, doorTexture, logArea),
+    logArea
+  );
 });
 
 // -------------------- イベントバインド --------------------
 
 // ルーム選択変更
-roomSelect.addEventListener("change", onRoomChange);
+roomSelect.addEventListener("change", () => {
+  onRoomChange(roomSelect, roomTitleInput, wallTexture, floorTexture, ceilingTexture, doorTexture, logArea);
+});
 
 // ファイル選択
-fileInput.addEventListener("change", () => {
+fileInput.addEventListener("change", async () => {
   const files = Array.from(fileInput.files || []);
   for (const file of files) {
     const previewURL = URL.createObjectURL(file);
-    createImageRow(null, crypto.randomUUID(), {
+    const row = await createImageRow(null, crypto.randomUUID(), {
       title: file.name,
       caption: "",
       author: "",
       downloadURL: previewURL,
       _fileObject: file
     }, false);
+    previewArea.appendChild(row);
   }
 });
 
@@ -53,14 +64,19 @@ uploadBtn.addEventListener("click", async () => {
 
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const uploadRows = rows.filter(r => r._fileObject);
-
   if (uploadRows.length === 0) { alert("アップロードする新規ファイルがありません"); return; }
 
   uploadBtn.disabled = true;
   await uploadFiles(uploadRows, roomId, logArea);
   uploadBtn.disabled = false;
 
-  await loadRoomImages(roomId);
+  // アップロード後に最新の images を読み込み表示
+  const uploadedImages = await loadRoomImages(roomId, logArea);
+  previewArea.innerHTML = "";
+  for (const imgData of uploadedImages) {
+    const row = await createImageRow(roomId, imgData.docId, imgData, true);
+    previewArea.appendChild(row);
+  }
 });
 
 // ルームタイトル更新
