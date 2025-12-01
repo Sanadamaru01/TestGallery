@@ -30,15 +30,6 @@ console.log("[TRACE] Firebase Firestore obtained:", db);
 window.addEventListener("DOMContentLoaded", async () => {
   console.log("[TRACE] DOMContentLoaded event fired");
 
-  try { 
-    console.log("[TRACE] loadAllTextures start");
-    await loadAllTextures({ wallTexture, floorTexture, ceilingTexture, doorTexture }, logArea); 
-    console.log("[TRACE] loadAllTextures done");
-  } catch (e) { 
-    log(`[ERROR] loadAllTextures: ${e.message}`, logArea); 
-    console.error(e);
-  }
-
   console.log("[TRACE] loadRooms start");
   await loadRooms();
   console.log("[TRACE] loadRooms done");
@@ -79,18 +70,6 @@ roomSelect.addEventListener("change", async () => {
   await onRoomChange();
 });
 
-// -------------------- select オプション反映 --------------------
-function selectOptionByValue(selectEl, value) {
-  if (!selectEl || !value) return;
-  const opts = Array.from(selectEl.options);
-  const found = opts.find(o => o.value === value);
-  if (found) selectEl.value = value;
-  else {
-    log(`⚠️ 選択肢に存在しないテクスチャが設定されています: ${value}`, logArea);
-    console.warn(`[selectOptionByValue] not found: ${value}`);
-  }
-}
-
 // -------------------- ルーム変更 --------------------
 async function onRoomChange() {
   const roomId = roomSelect.value;
@@ -105,14 +84,15 @@ async function onRoomChange() {
     }
     const data = snap.data();
     roomTitleInput.value = data.roomTitle ?? "";
-    console.log(`[TRACE] room data loaded: ${JSON.stringify(data)}`);
-
-    // -------------------- テクスチャ初期値反映 --------------------
     const tp = data.texturePaths ?? {};
-    if (tp.wall) selectOptionByValue(wallTexture, tp.wall);
-    if (tp.floor) selectOptionByValue(floorTexture, tp.floor);
-    if (tp.ceiling) selectOptionByValue(ceilingTexture, tp.ceiling);
-    if (tp.Door) selectOptionByValue(doorTexture, tp.Door);
+
+    console.log(`[TRACE] loadAllTextures start with currentValues`);
+    await loadAllTextures(
+      { wallTexture, floorTexture, ceilingTexture, doorTexture },
+      logArea,
+      { wall: tp.wall ?? "", floor: tp.floor ?? "", ceiling: tp.ceiling ?? "", Door: tp.Door ?? "" }
+    );
+    console.log("[TRACE] loadAllTextures done");
 
     console.log("[TRACE] loadRoomImages start");
     await loadRoomImages(previewArea, roomId, logArea);
@@ -157,21 +137,19 @@ updateTextureBtn.addEventListener("click", async () => {
   const roomId = roomSelect.value;
   if (!roomId) { log("[WARN] ルームを選択してください", logArea); return; }
 
-  const newPaths = {
-    wall: wallTexture.value || "",
-    floor: floorTexture.value || "",
-    ceiling: ceilingTexture.value || "",
-    Door: doorTexture.value || ""
-  };
-
   try {
-    console.log(`[TRACE] updateDoc(texturePaths: ${roomId}) start`);
+    console.log(`[TRACE] updateTextureBtn(room: ${roomId}) start`);
     await updateDoc(doc(db, "rooms", roomId), {
-      texturePaths: newPaths,
+      texturePaths: {
+        wall: wallTexture.value,
+        floor: floorTexture.value,
+        ceiling: ceilingTexture.value,
+        Door: doorTexture.value
+      },
       updatedAt: serverTimestamp()
     });
-    log(`[INFO] テクスチャ設定を更新しました`, logArea);
-    console.log(`[TRACE] updateDoc done`);
+    log("[INFO] テクスチャ設定を更新しました", logArea);
+    console.log(`[TRACE] updateTextureBtn done`);
   } catch (e) {
     log(`[ERROR] updateTextureBtn: ${e.message}`, logArea);
     console.error(e);
