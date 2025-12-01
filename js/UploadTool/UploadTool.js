@@ -32,7 +32,7 @@ let roomsData = {};
 
 async function loadRooms() {
   log("📂 Firestore から部屋リストを取得中...");
-  const rooms = await fs.getAllRooms(); // Firestore から rooms コレクションを取得する関数
+  const rooms = await fs.getRooms(); // Firestore から rooms コレクションを取得する関数
   roomSelect.innerHTML = "";
   rooms.forEach(doc => {
     const roomId = doc.id;
