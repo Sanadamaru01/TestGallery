@@ -8,4 +8,7 @@ const firebaseConfig = {
   storageBucket: "gallery-us-ebe6e.appspot.com",
 };
 
-export const app = initializeApp(firebaseConfig);
+console.log("firebaseInit loaded");
+  export const app = initializeApp(firebaseConfig);
+console.log("initializeApp done");
+
