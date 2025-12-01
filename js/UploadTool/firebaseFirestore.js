@@ -1,37 +1,25 @@
-// firebaseFirestore.js
-import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, addDoc, doc, updateDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from "./firebaseApp.js";
 
-// 画像メタデータ操作
+// Firestore へメタデータ保存
 export async function saveImageMetadata(roomId, imageId, data) {
-    const docRef = doc(db, `rooms/${roomId}/images/${imageId}`);
-    await setDoc(docRef, { ...data, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    await addDoc(collection(db, `rooms/${roomId}/images`), {
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date()
+    });
 }
 
-export async function getRoomImages(roomId) {
-    const colRef = collection(db, `rooms/${roomId}/images`);
-    const snapshot = await getDocs(colRef);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+// ルーム一覧取得
+export async function getAllRooms() {
+    const snap = await getDocs(collection(db, "rooms"));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-export async function deleteImageMetadata(roomId, imageId) {
-    const docRef = doc(db, `rooms/${roomId}/images/${imageId}`);
-    await deleteDoc(docRef);
-}
-
-// ルーム情報操作
-export async function getRoomData(roomId) {
-    const docRef = doc(db, `rooms/${roomId}`);
-    const snap = await getDoc(docRef);
-    return snap.exists() ? snap.data() : null;
-}
-
+// ルームタイトル更新
 export async function updateRoomTitle(roomId, newTitle) {
-    const docRef = doc(db, `rooms/${roomId}`);
-    await updateDoc(docRef, { roomTitle: newTitle, updatedAt: serverTimestamp() });
-}
-
-export async function updateRoomTextures(roomId, textures) {
-    const docRef = doc(db, `rooms/${roomId}`);
-    await updateDoc(docRef, { texturePaths: textures, updatedAt: serverTimestamp() });
+    await updateDoc(doc(db, "rooms", roomId), {
+        roomTitle: newTitle,
+        updatedAt: new Date()
+    });
 }
