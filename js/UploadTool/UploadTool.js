@@ -84,9 +84,8 @@ function selectOptionByValue(selectEl, value) {
   if (!selectEl || !value) return;
   const opts = Array.from(selectEl.options);
   const found = opts.find(o => o.value === value);
-  if (found) {
-    selectEl.value = value;
-  } else {
+  if (found) selectEl.value = value;
+  else {
     log(`⚠️ 選択肢に存在しないテクスチャが設定されています: ${value}`, logArea);
     console.warn(`[selectOptionByValue] not found: ${value}`);
   }
@@ -108,7 +107,7 @@ async function onRoomChange() {
     roomTitleInput.value = data.roomTitle ?? "";
     console.log(`[TRACE] room data loaded: ${JSON.stringify(data)}`);
 
-    // -------------------- ここでテクスチャ反映 --------------------
+    // -------------------- テクスチャ初期値反映 --------------------
     const tp = data.texturePaths ?? {};
     if (tp.wall) selectOptionByValue(wallTexture, tp.wall);
     if (tp.floor) selectOptionByValue(floorTexture, tp.floor);
@@ -149,6 +148,32 @@ updateRoomBtn.addEventListener("click", async () => {
     console.log(`[TRACE] updateDoc done`);
   } catch (e) { 
     log(`[ERROR] updateRoomBtn: ${e.message}`, logArea); 
+    console.error(e);
+  }
+});
+
+// -------------------- テクスチャ更新 --------------------
+updateTextureBtn.addEventListener("click", async () => {
+  const roomId = roomSelect.value;
+  if (!roomId) { log("[WARN] ルームを選択してください", logArea); return; }
+
+  const newPaths = {
+    wall: wallTexture.value || "",
+    floor: floorTexture.value || "",
+    ceiling: ceilingTexture.value || "",
+    Door: doorTexture.value || ""
+  };
+
+  try {
+    console.log(`[TRACE] updateDoc(texturePaths: ${roomId}) start`);
+    await updateDoc(doc(db, "rooms", roomId), {
+      texturePaths: newPaths,
+      updatedAt: serverTimestamp()
+    });
+    log(`[INFO] テクスチャ設定を更新しました`, logArea);
+    console.log(`[TRACE] updateDoc done`);
+  } catch (e) {
+    log(`[ERROR] updateTextureBtn: ${e.message}`, logArea);
     console.error(e);
   }
 });
