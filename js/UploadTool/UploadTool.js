@@ -5,7 +5,8 @@ import { loadRoomImages, handleFileSelect, uploadFiles } from './imageRowManager
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { app } from './firebaseInit.js';
 
-// DOM
+console.log("[TRACE] UploadTool.js loaded");
+
 const roomSelect = document.getElementById("roomSelect");
 const roomTitleInput = document.getElementById("roomTitleInput");
 const updateRoomBtn = document.getElementById("updateRoomBtn");
@@ -23,19 +24,34 @@ const uploadBtn = document.getElementById("uploadBtn");
 const logArea = document.getElementById("log");
 const db = getFirestore(app);
 
-// 初期化
-window.addEventListener("DOMContentLoaded", async () => {
-  try { 
-    await loadAllTextures({ wallTexture, floorTexture, ceilingTexture, doorTexture }, logArea); 
-  } catch (e) { log(e.message, logArea); }
+console.log("[TRACE] Firebase Firestore obtained:", db);
 
+// -------------------- 初期化 --------------------
+window.addEventListener("DOMContentLoaded", async () => {
+  console.log("[TRACE] DOMContentLoaded event fired");
+
+  try { 
+    console.log("[TRACE] loadAllTextures start");
+    await loadAllTextures({ wallTexture, floorTexture, ceilingTexture, doorTexture }, logArea); 
+    console.log("[TRACE] loadAllTextures done");
+  } catch (e) { 
+    log(`[ERROR] loadAllTextures: ${e.message}`, logArea); 
+    console.error(e);
+  }
+
+  console.log("[TRACE] loadRooms start");
   await loadRooms();
+  console.log("[TRACE] loadRooms done");
+
+  console.log("[TRACE] handleFileSelect start");
   handleFileSelect(fileInput, previewArea, logArea);
+  console.log("[TRACE] handleFileSelect done");
 });
 
-// ルーム読み込み
+// -------------------- ルーム一覧読み込み --------------------
 async function loadRooms() {
   try {
+    console.log("[TRACE] getDocs(rooms) start");
     const snap = await getDocs(collection(db, "rooms"));
     roomSelect.innerHTML = "";
     snap.forEach(d => {
@@ -44,43 +60,75 @@ async function loadRooms() {
       opt.textContent = `${d.id} : ${d.data().roomTitle ?? "(no title)"}`;
       roomSelect.appendChild(opt);
     });
+    console.log(`[TRACE] getDocs(rooms) done, count: ${snap.size}`);
+
     if (roomSelect.options.length > 0) {
       roomSelect.selectedIndex = 0;
+      console.log("[TRACE] onRoomChange start");
       await onRoomChange();
+      console.log("[TRACE] onRoomChange done");
     }
-  } catch (e) { log(e.message, logArea); }
+  } catch (e) { 
+    log(`[ERROR] loadRooms: ${e.message}`, logArea); 
+    console.error(e);
+  }
 }
 
-roomSelect.addEventListener("change", onRoomChange);
+roomSelect.addEventListener("change", async () => {
+  console.log("[TRACE] roomSelect change event");
+  await onRoomChange();
+});
 
+// -------------------- ルーム変更 --------------------
 async function onRoomChange() {
   const roomId = roomSelect.value;
   if (!roomId) return;
+
   try {
+    console.log(`[TRACE] getDoc(room: ${roomId}) start`);
     const snap = await getDoc(doc(db, "rooms", roomId));
-    if (!snap.exists()) return;
+    if (!snap.exists()) {
+      console.log(`[TRACE] room ${roomId} does not exist`);
+      return;
+    }
     const data = snap.data();
     roomTitleInput.value = data.roomTitle ?? "";
+    console.log(`[TRACE] room data loaded: ${JSON.stringify(data)}`);
+
+    console.log("[TRACE] loadRoomImages start");
     await loadRoomImages(previewArea, roomId, logArea);
-  } catch (e) { log(e.message, logArea); }
+    console.log("[TRACE] loadRoomImages done");
+  } catch (e) { 
+    log(`[ERROR] onRoomChange: ${e.message}`, logArea); 
+    console.error(e);
+  }
 }
 
-// アップロードボタン
+// -------------------- アップロードボタン --------------------
 uploadBtn.addEventListener("click", async () => {
   const roomId = roomSelect.value;
-  if (!roomId) { log("ルームを選択してください", logArea); return; }
+  if (!roomId) { log("[WARN] ルームを選択してください", logArea); return; }
+
+  console.log(`[TRACE] uploadFiles start for room: ${roomId}`);
   await uploadFiles(previewArea, roomId, logArea);
+  console.log(`[TRACE] uploadFiles done for room: ${roomId}`);
 });
 
-// ルームタイトル更新
+// -------------------- ルームタイトル更新 --------------------
 updateRoomBtn.addEventListener("click", async () => {
   const roomId = roomSelect.value;
   if (!roomId) return;
+
   try {
+    console.log(`[TRACE] updateDoc(room: ${roomId}) start`);
     await updateDoc(doc(db, "rooms", roomId), {
       roomTitle: roomTitleInput.value,
       updatedAt: serverTimestamp()
     });
-    log(`ルームタイトルを更新しました: ${roomTitleInput.value}`, logArea);
-  } catch (e) { log(e.message, logArea); }
+    log(`[INFO] ルームタイトルを更新しました: ${roomTitleInput.value}`, logArea);
+    console.log(`[TRACE] updateDoc done`);
+  } catch (e) { 
+    log(`[ERROR] updateRoomBtn: ${e.message}`, logArea); 
+    console.error(e);
+  }
 });
