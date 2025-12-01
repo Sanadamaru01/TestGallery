@@ -79,6 +79,19 @@ roomSelect.addEventListener("change", async () => {
   await onRoomChange();
 });
 
+// -------------------- select オプション反映 --------------------
+function selectOptionByValue(selectEl, value) {
+  if (!selectEl || !value) return;
+  const opts = Array.from(selectEl.options);
+  const found = opts.find(o => o.value === value);
+  if (found) {
+    selectEl.value = value;
+  } else {
+    log(`⚠️ 選択肢に存在しないテクスチャが設定されています: ${value}`, logArea);
+    console.warn(`[selectOptionByValue] not found: ${value}`);
+  }
+}
+
 // -------------------- ルーム変更 --------------------
 async function onRoomChange() {
   const roomId = roomSelect.value;
@@ -94,6 +107,13 @@ async function onRoomChange() {
     const data = snap.data();
     roomTitleInput.value = data.roomTitle ?? "";
     console.log(`[TRACE] room data loaded: ${JSON.stringify(data)}`);
+
+    // -------------------- ここでテクスチャ反映 --------------------
+    const tp = data.texturePaths ?? {};
+    if (tp.wall) selectOptionByValue(wallTexture, tp.wall);
+    if (tp.floor) selectOptionByValue(floorTexture, tp.floor);
+    if (tp.ceiling) selectOptionByValue(ceilingTexture, tp.ceiling);
+    if (tp.Door) selectOptionByValue(doorTexture, tp.Door);
 
     console.log("[TRACE] loadRoomImages start");
     await loadRoomImages(previewArea, roomId, logArea);
