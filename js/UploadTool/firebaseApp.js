@@ -1,15 +1,23 @@
 // firebaseApp.js
-// Firebase 初期化専用ファイル（他の初期化は絶対にここ以外で行わない）
+import { initializeApp, getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+// Firebase 初期化（1回だけ）
+let app;
+try {
+    app = getApp();
+} catch {
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "gallery-us-ebe6e.firebaseapp.com",
+        projectId: "gallery-us-ebe6e",
+        storageBucket: "gallery-us-ebe6e.firebasestorage.app",
+    };
+    app = initializeApp(firebaseConfig);
+}
 
-// あなたの Firebase 設定値をそのまま書く
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "gallery-us-ebe6e.firebaseapp.com",
-  projectId: "gallery-us-ebe6e",
-  storageBucket: "gallery-us-ebe6e.firebasestorage.app",
-};
+const db = getFirestore(app);
+const storage = getStorage(app);
 
-// initializeApp は一度だけ
-export const app = initializeApp(firebaseConfig);
+export { app, db, storage };
