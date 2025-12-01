@@ -28,7 +28,8 @@ async function tryListAllWithFallbacks(storagePath) {
   return { path: storagePath, res };
 }
 
-export async function populateTextureSelect(storagePath, selectEl) {
+// -------------------- select に反映 --------------------
+async function populateTextureSelect(storagePath, selectEl, logArea = null) {
   if (!selectEl) return;
   selectEl.innerHTML = "";
   const emptyOpt = document.createElement("option");
@@ -43,7 +44,7 @@ export async function populateTextureSelect(storagePath, selectEl) {
       note.value = "";
       note.textContent = "(Share にファイルがありません)";
       selectEl.appendChild(note);
-      log(`⚠️ ${storagePath} にファイルが見つかりませんでした（候補: ${usedPath}）`);
+      log(`⚠️ ${storagePath} にファイルが見つかりませんでした（候補: ${usedPath}）`, logArea);
       return;
     }
     for (const itemRef of res.items) {
@@ -53,9 +54,9 @@ export async function populateTextureSelect(storagePath, selectEl) {
       opt.textContent = itemRef.name;
       selectEl.appendChild(opt);
     }
-    log(`✅ ${usedPath} から ${res.items.length} 件のテクスチャを取得しました`);
+    log(`✅ ${usedPath} から ${res.items.length} 件のテクスチャを取得しました`, logArea);
   } catch (err) {
-    log(`❌ ${storagePath} の一覧取得エラー: ${err.message}`);
+    log(`❌ ${storagePath} の一覧取得エラー: ${err.message}`, logArea);
     const errOpt = document.createElement("option");
     errOpt.value = "";
     errOpt.textContent = "(取得エラー)";
@@ -63,11 +64,12 @@ export async function populateTextureSelect(storagePath, selectEl) {
   }
 }
 
-export async function loadTextures(selectors) {
-  log("🖼️ テクスチャ一覧を Storage (Share) から取得しています...");
-  await populateTextureSelect("share/Wall", selectors.wallTexture);
-  await populateTextureSelect("share/Floor", selectors.floorTexture);
-  await populateTextureSelect("share/Ceiling", selectors.ceilingTexture);
-  await populateTextureSelect("share/Door", selectors.doorTexture);
-  log("✅ テクスチャ一覧取得完了");
+// -------------------- 全テクスチャ読み込み --------------------
+export async function loadAllTextures(wallTexture, floorTexture, ceilingTexture, doorTexture, logArea = null) {
+  log("🖼️ テクスチャ一覧を Storage (Share) から取得しています...", logArea);
+  await populateTextureSelect("share/Wall", wallTexture, logArea);
+  await populateTextureSelect("share/Floor", floorTexture, logArea);
+  await populateTextureSelect("share/Ceiling", ceilingTexture, logArea);
+  await populateTextureSelect("share/Door", doorTexture, logArea);
+  log("✅ テクスチャ一覧取得完了", logArea);
 }
