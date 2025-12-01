@@ -1,7 +1,9 @@
+// UploadTool.js
 import { log } from './utils.js';
 import { loadAllTextures } from './textureManager.js';
 import { loadRoomImages, handleFileSelect, uploadFiles } from './imageRowManager.js';
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { app } from './firebaseInit.js';  // ← Firebase 初期化を import
 
 // DOM
 const roomSelect = document.getElementById("roomSelect");
@@ -19,11 +21,14 @@ const previewArea = document.getElementById("previewArea");
 const uploadBtn = document.getElementById("uploadBtn");
 
 const logArea = document.getElementById("log");
-const db = getFirestore();
+const db = getFirestore(app);  // ← app を渡す
 
 // 初期化
 window.addEventListener("DOMContentLoaded", async () => {
-  try { await loadAllTextures(wallTexture, floorTexture, ceilingTexture, doorTexture, logArea); } catch {}
+  try { 
+    await loadAllTextures(wallTexture, floorTexture, ceilingTexture, doorTexture, logArea); 
+  } catch (e) { log(e.message, logArea); }
+
   await loadRooms();
   handleFileSelect(fileInput, previewArea);
 });
@@ -63,6 +68,7 @@ async function onRoomChange() {
 // アップロードボタン
 uploadBtn.addEventListener("click", async () => {
   const roomId = roomSelect.value;
+  if (!roomId) { log("ルームを選択してください", logArea); return; }
   await uploadFiles(previewArea, roomId, logArea);
 });
 
@@ -71,6 +77,10 @@ updateRoomBtn.addEventListener("click", async () => {
   const roomId = roomSelect.value;
   if (!roomId) return;
   try {
-    await updateDoc(doc(db, "rooms", roomId), {roomTitle: roomTitleInput.value, updatedAt: serverTimestamp()});
+    await updateDoc(doc(db, "rooms", roomId), {
+      roomTitle: roomTitleInput.value,
+      updatedAt: serverTimestamp()
+    });
+    log(`ルームタイトルを更新しました: ${roomTitleInput.value}`, logArea);
   } catch (e) { log(e.message, logArea); }
 });
