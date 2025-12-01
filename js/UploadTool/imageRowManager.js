@@ -12,7 +12,7 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 
 // -------------------- 画像行作成 --------------------
-export function createImageRow(previewArea, roomId, docId, data, isExisting = false, logArea = null) {
+export function createImageRow(previewArea, roomId, docId, data, isExisting = false, logArea) {
   const row = document.createElement("div");
   row.className = "file-row";
 
@@ -86,7 +86,7 @@ export function createImageRow(previewArea, roomId, docId, data, isExisting = fa
 }
 
 // -------------------- ルームの images 読み込み --------------------
-export async function loadRoomImages(previewArea, roomId, logArea = null) {
+export async function loadRoomImages(previewArea, roomId, logArea) {
   previewArea.innerHTML = "";
   try {
     const snap = await getDocs(collection(db, `rooms/${roomId}/images`));
@@ -106,7 +106,8 @@ export async function loadRoomImages(previewArea, roomId, logArea = null) {
       }
       const storageRef = ref(storage, `rooms/${roomId}/${fileName}`);
       let downloadURL = "";
-      try { downloadURL = await getDownloadURL(storageRef); } catch {}
+      try { downloadURL = await getDownloadURL(storageRef); } 
+      catch (err) { log(`⚠️ ${fileName} のダウンロードURL取得失敗: ${err.message}`, logArea); }
       createImageRow(previewArea, roomId, docSnap.id, {...data, downloadURL, file: fileName}, true, logArea);
     }
   } catch (err) {
@@ -115,7 +116,7 @@ export async function loadRoomImages(previewArea, roomId, logArea = null) {
 }
 
 // -------------------- ファイル選択 → プレビュー --------------------
-export function handleFileSelect(fileInput, previewArea, logArea = null) {
+export function handleFileSelect(fileInput, previewArea, logArea) {
   fileInput.addEventListener("change", () => {
     const files = Array.from(fileInput.files || []);
     for (const file of files) {
@@ -132,7 +133,7 @@ export function handleFileSelect(fileInput, previewArea, logArea = null) {
 }
 
 // -------------------- アップロード処理 --------------------
-export async function uploadFiles(previewArea, roomId, logArea = null) {
+export async function uploadFiles(previewArea, roomId, logArea) {
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const uploadRows = rows.filter(r => r._fileObject);
   if (uploadRows.length === 0) { alert("アップロードする新規ファイルがありません"); return; }
