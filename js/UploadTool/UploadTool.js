@@ -1,132 +1,98 @@
-// UploadTool.js
-import { loadImageFile, loadImageElement, resizeAndConvert } from "./imageUtils.js";
-import { uploadImage, deleteImage } from "./firebaseStorage.js";
-import { saveImageMetadata, updateImageMetadata, deleteImageMetadata, getRooms, getRoomImages, updateRoomTitle, updateRoomTextures } from "./firebaseFirestore.js";
-import { setupFileInput, createProgressBar, createImageRow } from "./uiHandlers.js";
+// uploadTool.js
+import pica from "https://cdn.skypack.dev/pica";
+import * as fs from "./firebaseFirestore.js";
+import * as st from "./firebaseStorage.js";
 
-// グローバル UI 要素
+// DOM 要素取得
 const roomSelect = document.getElementById("roomSelect");
-const roomTitleInput = document.getElementById("roomTitleInput");
-const updateRoomBtn = document.getElementById("updateRoomBtn");
-
-const wallTexture = document.getElementById("wallTexture");
-const floorTexture = document.getElementById("floorTexture");
-const ceilingTexture = document.getElementById("ceilingTexture");
-const doorTexture = document.getElementById("doorTexture");
-const updateTextureBtn = document.getElementById("updateTextureBtn");
-
 const fileInput = document.getElementById("fileInput");
-const uploadBtn = document.getElementById("uploadBtn");
 const previewArea = document.getElementById("previewArea");
-const logEl = document.getElementById("log");
-
-let currentRoomId = null;
+const uploadBtn = document.getElementById("uploadBtn");
+const logArea = document.getElementById("log");
 
 // ログ出力
 function log(msg) {
-    logEl.textContent += msg + "\n";
-    logEl.scrollTop = logEl.scrollHeight;
+  const t = new Date().toLocaleString();
+  logArea.textContent = `[${t}] ${msg}\n` + logArea.textContent;
 }
 
-// ルームセレクト生成
-async function loadRooms() {
-    const rooms = await getRooms();
-    roomSelect.innerHTML = "";
-    rooms.forEach(r => {
-        const opt = document.createElement("option");
-        opt.value = r.id;
-        opt.textContent = r.roomTitle;
-        roomSelect.appendChild(opt);
-    });
-    if (rooms[0]) {
-        currentRoomId = rooms[0].id;
-        roomTitleInput.value = rooms[0].roomTitle;
-        loadRoomImages();
-    }
+// ファイル選択 -> プレビュー
+fileInput.addEventListener("change", () => {
+  const files = Array.from(fileInput.files || []);
+  for (const file of files) {
+    const previewURL = URL.createObjectURL(file);
+    createImageRow(null, crypto.randomUUID(), {
+      title: file.name,
+      downloadURL: previewURL,
+      _fileObject: file
+    }, false);
+  }
+});
+
+// プレビュー行作成（簡略版）
+function createImageRow(roomId, docId, data, isExisting) {
+  const row = document.createElement("div");
+  row.className = "file-row";
+  const img = document.createElement("img");
+  img.src = data.downloadURL || "";
+  row.appendChild(img);
+  if (!isExisting && data._fileObject) row._fileObject = data._fileObject;
+  previewArea.appendChild(row);
 }
 
-roomSelect.addEventListener("change", () => {
-    currentRoomId = roomSelect.value;
-    loadRoomImages();
-});
-
-// ルームタイトル更新
-updateRoomBtn.addEventListener("click", async () => {
-    if (!currentRoomId) return;
-    await updateRoomTitle(currentRoomId, roomTitleInput.value);
-    log(`ルームタイトル更新: ${roomTitleInput.value}`);
-});
-
-// テクスチャ更新
-updateTextureBtn.addEventListener("click", async () => {
-    if (!currentRoomId) return;
-    await updateRoomTextures(currentRoomId, {
-        wall: wallTexture.value,
-        floor: floorTexture.value,
-        ceiling: ceilingTexture.value,
-        door: doorTexture.value
-    });
-    log("テクスチャ更新完了");
-});
-
-// ファイルアップロード
-let selectedFile = null;
-setupFileInput(fileInput, previewArea, (file) => selectedFile = file);
-
+// アップロード処理
 uploadBtn.addEventListener("click", async () => {
-    if (!currentRoomId || !selectedFile) return;
+  const roomId = roomSelect.value;
+  if (!roomId) { alert("ルームを選択してください"); return; }
 
-    const progressFill = createProgressBar(previewArea);
+  const rows = Array.from(previewArea.querySelectorAll(".file-row"));
+  const uploadRows = rows.filter(r => r._fileObject);
+  if (uploadRows.length === 0) { alert("アップロードする新規ファイルがありません"); return; }
 
+  uploadBtn.disabled = true;
+  let success = 0, fail = 0;
+  for (const row of uploadRows) {
+    const fileObj = row._fileObject;
     try {
-        const dataUrl = await loadImageFile(selectedFile);
-        const imgEl = await loadImageElement(dataUrl);
-        const blob = await resizeAndConvert(imgEl, 600, 0.85);
-
-        const imageId = crypto.randomUUID();
-        const storagePath = `rooms/${currentRoomId}/${imageId}.jpg`;
-        const downloadUrl = await uploadImage(storagePath, blob, (percent) => {
-            progressFill.style.width = percent + "%";
-        });
-
-        await saveImageMetadata(currentRoomId, imageId, {
-            file: downloadUrl,
-            title: selectedFile.name,
-            caption: "",
-            author: ""
-        });
-
-        log(`アップロード完了: ${selectedFile.name}`);
-        loadRoomImages();
-    } catch (e) {
-        console.error(e);
-        log(`アップロード失敗: ${e.message}`);
+      const blob = await resizeImageToWebp(fileObj);
+      const fileName = crypto.randomUUID() + ".webp";
+      const storagePath = `rooms/${roomId}/${fileName}`;
+      await st.uploadFile(storagePath, blob);
+      await fs.addRoomImageMeta(roomId, { file: fileName, title: fileObj.name });
+      success++;
+      log(`✅ ${fileObj.name} を保存 (${storagePath})`);
+    } catch(e) {
+      fail++;
+      log(`❌ アップロード失敗: ${e.message}`);
     }
+  }
+  uploadBtn.disabled = false;
+  log(`🎉 完了 — 成功: ${success}, 失敗: ${fail}`);
 });
 
-// ルーム内画像一覧表示
-async function loadRoomImages() {
-    if (!currentRoomId) return;
-    previewArea.innerHTML = "";
-    const images = await getRoomImages(currentRoomId);
-    images.forEach(img => {
-        const row = createImageRow(img,
-            async (id) => { // 削除
-                await deleteImageMetadata(currentRoomId, id);
-                await deleteImage(`rooms/${currentRoomId}/${id}.jpg`);
-                log(`削除: ${id}`);
-                loadRoomImages();
-            },
-            async (id, data) => { // 更新
-                await updateImageMetadata(currentRoomId, id, data);
-                log(`更新: ${id}`);
-                loadRoomImages();
-            }
-        );
-        previewArea.appendChild(row);
-    });
-}
+// 画像リサイズ
+async function resizeImageToWebp(file, maxLongSide = 1600, quality = 0.9) {
+  const img = new Image();
+  const objectURL = URL.createObjectURL(file);
+  img.src = objectURL;
+  await img.decode();
 
-// 初期ロード
-loadRooms();
-log("UploadTool モジュールロード完了");
+  const long = Math.max(img.width, img.height);
+  const scale = long > maxLongSide ? (maxLongSide / long) : 1;
+  const width = Math.round(img.width * scale);
+  const height = Math.round(img.height * scale);
+
+  const sourceCanvas = document.createElement("canvas");
+  sourceCanvas.width = img.width;
+  sourceCanvas.height = img.height;
+  sourceCanvas.getContext("2d").drawImage(img, 0, 0);
+
+  const targetCanvas = document.createElement("canvas");
+  targetCanvas.width = width;
+  targetCanvas.height = height;
+
+  await pica().resize(sourceCanvas, targetCanvas);
+  const blob = await new Promise(resolve => targetCanvas.toBlob(resolve, "image/webp", quality));
+  URL.revokeObjectURL(objectURL);
+  return blob;
+}
