@@ -1,6 +1,4 @@
-// utils.js
-// 共通ユーティリティ関数
-
+// utils.js - 分割版独立動作
 import pica from "https://cdn.skypack.dev/pica";
 
 // -------------------- ログ出力 --------------------
@@ -61,3 +59,5 @@ export async function resizeImageToWebp(file, maxLongSide = 1600, quality = 0.9)
   URL.revokeObjectURL(objectURL);
   return blob;
 }
+
+console.log("utils.js loaded");
