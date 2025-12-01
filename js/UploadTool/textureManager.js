@@ -1,4 +1,3 @@
-// textureManager.js
 import { getStorage, ref, listAll } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { app } from './firebaseInit.js';
 import { log } from './utils.js';
@@ -18,9 +17,14 @@ async function populateTextureSelect(storagePath, selectEl, logArea) {
   emptyOpt.textContent = "(設定なし)";
   selectEl.appendChild(emptyOpt);
 
+  log(`[TRACE] populateTextureSelect start: ${storagePath}`, logArea);
+
   try {
     const listRef = ref(storage, storagePath);
+    log(`[TRACE] listRef created: ${listRef.fullPath}`, logArea);
+
     const res = await listAll(listRef);
+    log(`[TRACE] listAll resolved: items=${res.items.length}, prefixes=${res.prefixes.length}`, logArea);
 
     if (!res.items || res.items.length === 0) {
       const note = document.createElement("option");
@@ -38,6 +42,7 @@ async function populateTextureSelect(storagePath, selectEl, logArea) {
       opt.value = relativePath;
       opt.textContent = itemRef.name;
       selectEl.appendChild(opt);
+      log(`[TRACE] item added: ${relativePath}`, logArea);
     }
 
     log(`✅ ${storagePath} から ${res.items.length} 件のテクスチャを取得しました`, logArea);
@@ -48,17 +53,24 @@ async function populateTextureSelect(storagePath, selectEl, logArea) {
     errOpt.value = "";
     errOpt.textContent = "(取得エラー)";
     selectEl.appendChild(errOpt);
+    log(`[TRACE] populateTextureSelect catch end for ${storagePath}`, logArea);
   }
+
+  log(`[TRACE] populateTextureSelect end: ${storagePath}`, logArea);
 }
 
 /**
  * 各テクスチャ select をロード
  */
 export async function loadAllTextures(selectors, logArea) {
+  log("[TRACE] loadAllTextures start", logArea);
   log("🖼️ テクスチャ一覧を Storage (Share) から取得しています...", logArea);
+
   await populateTextureSelect("share/Wall", selectors.wallTexture, logArea);
   await populateTextureSelect("share/Floor", selectors.floorTexture, logArea);
   await populateTextureSelect("share/Ceiling", selectors.ceilingTexture, logArea);
   await populateTextureSelect("share/Door", selectors.doorTexture, logArea);
+
   log("✅ テクスチャ一覧取得完了", logArea);
+  log("[TRACE] loadAllTextures end", logArea);
 }
