@@ -17,7 +17,20 @@ export async function loadRoomImages(previewArea, roomId, logArea) {
     for (const imgDoc of imagesSnap.docs) {
       const data = imgDoc.data();
       const imgEl = document.createElement("img");
-      imgEl.src = data.file; // すでに Storage URL が保存されている想定
+
+      // Firestore に相対パスしかない場合は Storage から URL を取得
+      let fileUrl = data.file;
+      if (!fileUrl.startsWith("https://")) {
+        try {
+          const storageRef = ref(storage, data.file);
+          fileUrl = await getDownloadURL(storageRef);
+        } catch (e) {
+          log(`❌ 画像 URL 取得失敗: ${data.file} - ${e.message}`, logArea);
+          continue; // URL 取得できなければスキップ
+        }
+      }
+
+      imgEl.src = fileUrl;
       imgEl.alt = data.title || "";
       previewArea.appendChild(imgEl);
     }
@@ -58,7 +71,7 @@ export async function uploadFiles(previewArea, roomId, logArea) {
       // Firestore に登録
       const imgDocRef = doc(collection(db, `rooms/${roomId}/images`));
       await setDoc(imgDocRef, {
-        file: url,
+        file: url, // URL を保存
         title: file.name,
         caption: "",
         author: "",
