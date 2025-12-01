@@ -1,18 +1,15 @@
 // firebaseApp.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "YOUR_API_KEY", // <- 自分の値に置き換えてください
+  authDomain: "gallery-us-ebe6e.firebaseapp.com",
+  projectId: "gallery-us-ebe6e",
+  storageBucket: "gallery-us-ebe6e.firebasestorage.app",
 };
 
-const app = initializeApp(firebaseConfig);
-
-export const firestore = getFirestore(app);
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
 export const storage = getStorage(app);
