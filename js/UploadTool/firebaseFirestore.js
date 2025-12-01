@@ -1,43 +1,51 @@
 // firebaseFirestore.js
-import { firestore } from "./firebaseApp.js";
-import { doc, setDoc, getDoc, deleteDoc, collection, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-
-// 画像メタデータ保存・更新
-export async function saveImageMetadata(roomId, imageId, data) {
-    const docRef = doc(firestore, `rooms/${roomId}/images/${imageId}`);
-    await setDoc(docRef, { ...data, createdAt: new Date(), updatedAt: new Date() });
-}
-
-export async function updateImageMetadata(roomId, imageId, data) {
-    const docRef = doc(firestore, `rooms/${roomId}/images/${imageId}`);
-    await updateDoc(docRef, { ...data, updatedAt: new Date() });
-}
-
-export async function deleteImageMetadata(roomId, imageId) {
-    const docRef = doc(firestore, `rooms/${roomId}/images/${imageId}`);
-    await deleteDoc(docRef);
-}
+import { db } from "./firebaseApp.js";
+import { collection, getDocs, doc, getDoc, updateDoc, addDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ルーム一覧取得
 export async function getRooms() {
-    const snapshot = await getDocs(collection(firestore, "rooms"));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snap = await getDocs(collection(db, "rooms"));
+  return snap.docs.map(d => ({ id: d.id, data: d.data() }));
+}
+
+// ルーム情報取得
+export async function getRoom(roomId) {
+  const snap = await getDoc(doc(db, "rooms", roomId));
+  return snap.exists() ? snap.data() : null;
 }
 
 // ルームタイトル更新
-export async function updateRoomTitle(roomId, title) {
-    const docRef = doc(firestore, `rooms/${roomId}`);
-    await updateDoc(docRef, { roomTitle: title, updatedAt: new Date() });
+export async function updateRoomTitle(roomId, newTitle) {
+  await updateDoc(doc(db, "rooms", roomId), { roomTitle: newTitle, updatedAt: serverTimestamp() });
 }
 
-// テクスチャ設定更新
-export async function updateRoomTextures(roomId, textures) {
-    const docRef = doc(firestore, `rooms/${roomId}`);
-    await updateDoc(docRef, { texturePaths: textures, updatedAt: new Date() });
+// テクスチャ更新
+export async function updateRoomTextures(roomId, updates) {
+  updates.updatedAt = serverTimestamp();
+  await updateDoc(doc(db, "rooms", roomId), updates);
 }
 
-// ルーム内画像一覧取得
+// images コレクション取得
 export async function getRoomImages(roomId) {
-    const snapshot = await getDocs(collection(firestore, `rooms/${roomId}/images`));
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snap = await getDocs(collection(db, `rooms/${roomId}/images`));
+  return snap.docs.map(d => ({ id: d.id, data: d.data() }));
+}
+
+// 画像メタデータ追加
+export async function addRoomImageMeta(roomId, meta) {
+  meta.createdAt = serverTimestamp();
+  meta.updatedAt = serverTimestamp();
+  const docRef = await addDoc(collection(db, `rooms/${roomId}/images`), meta);
+  return docRef.id;
+}
+
+// 画像メタデータ更新
+export async function updateRoomImageMeta(roomId, imageId, updates) {
+  updates.updatedAt = serverTimestamp();
+  await updateDoc(doc(db, `rooms/${roomId}/images/${imageId}`), updates);
+}
+
+// 画像メタデータ削除
+export async function deleteRoomImageMeta(roomId, imageId) {
+  await deleteDoc(doc(db, `rooms/${roomId}/images/${imageId}`));
 }
