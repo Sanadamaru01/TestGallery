@@ -8,7 +8,7 @@ const firebaseConfig = {
   apiKey: "YOUR_API_KEY",              // ← 元コードのまま
   authDomain: "gallery-us-ebe6e.firebaseapp.com",
   projectId: "gallery-us-ebe6e",
-  storageBucket: "gallery-us-ebe6e.appspot.com",
+  storageBucket: "gallery-us-ebe6e.firebasestorage.app",
 };
 
 // ログ出力で確認
