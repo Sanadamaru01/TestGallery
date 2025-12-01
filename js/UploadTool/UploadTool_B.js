@@ -19,6 +19,8 @@ const firebaseConfig = {
   storageBucket: "gallery-us-ebe6e.firebasestorage.app",
 };
 const app = initializeApp(firebaseConfig);
+console.log("[DEBUG] Firebase app initialized:", app);
+console.log("[DEBUG] apiKey in app.options:", app.options.apiKey);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
