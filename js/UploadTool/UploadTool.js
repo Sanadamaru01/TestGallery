@@ -90,7 +90,7 @@ async function onRoomChange() {
     await loadAllTextures(
       { wallTexture, floorTexture, ceilingTexture, doorTexture },
       logArea,
-      { wall: tp.wall ?? "", floor: tp.floor ?? "", ceiling: tp.ceiling ?? "", Door: tp.Door ?? "" }
+      { wall: tp.wall ?? "", floor: tp.floor ?? "", ceiling: tp.ceiling ?? "", door: tp.door ?? "" }
     );
     console.log("[TRACE] loadAllTextures done");
 
