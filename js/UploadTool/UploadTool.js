@@ -144,7 +144,7 @@ updateTextureBtn.addEventListener("click", async () => {
         wall: wallTexture.value,
         floor: floorTexture.value,
         ceiling: ceilingTexture.value,
-        Door: doorTexture.value
+        door: doorTexture.value
       },
       updatedAt: serverTimestamp()
     });
