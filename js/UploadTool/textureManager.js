@@ -97,7 +97,7 @@ export async function loadAllTextures(selectors, logArea, currentValues = {}) {
   await populateTextureSelect("share/Wall", selectors.wallTexture, logArea, currentValues.wall ?? "");
   await populateTextureSelect("share/Floor", selectors.floorTexture, logArea, currentValues.floor ?? "");
   await populateTextureSelect("share/Ceiling", selectors.ceilingTexture, logArea, currentValues.ceiling ?? "");
-  await populateTextureSelect("share/Door", selectors.doorTexture, logArea, currentValues.Door ?? "");
+  await populateTextureSelect("share/Door", selectors.doorTexture, logArea, currentValues.door ?? "");
 
   log("✅ テクスチャ一覧取得完了", logArea);
   log("[TRACE] loadAllTextures end", logArea);
