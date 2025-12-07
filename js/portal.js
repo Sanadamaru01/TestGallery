@@ -1,25 +1,46 @@
+/* ----------------------------------------------------
+   Firebase 初期化
+---------------------------------------------------- */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+import {
+  getStorage,
+  ref,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-storage.js";
+
+/* あなたの Firebase 設定に置き換えてください */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "gallery-us-ebe6e.firebaseapp.com",
+  projectId: "gallery-us-ebe6e",
+  storageBucket: "gallery-us-ebe6e.appspot.com",
+  messagingSenderId: "000000000000",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
 const now = new Date();
 
-async function loadConfigJson() {
-  const res = await fetch('./portalConfig.json?t=' + Date.now());
-  if (!res.ok) throw new Error('portalConfig.json の読み込みに失敗しました');
-  return await res.json();
+/* ----------------------------------------------------
+   公開期間チェック
+---------------------------------------------------- */
+function isWithinPeriod(startDate, endDate) {
+  return now >= startDate && now <= endDate;
 }
 
-async function loadRoomConfig(roomId) {
-  const path = `./rooms/${roomId}/RoomConfig.json`;
-  const res = await fetch(`${path}?t=${Date.now()}`);
-  if (!res.ok) throw new Error(`Failed to fetch ${path}`);
-  return await res.json();
-}
-
-function isWithinPeriod(startStr, endStr) {
-  const start = new Date(startStr);
-  const end = new Date(endStr);
-  return now >= start && now <= end;
-}
-
-function createRoomCard(roomId, config, isOpen) {
+/* ----------------------------------------------------
+   ルームカード生成（HTML）
+---------------------------------------------------- */
+function createRoomCard(roomId, roomData, thumbnailUrl, isOpen) {
   const container = document.createElement('div');
   container.className = 'room-card';
 
@@ -28,18 +49,20 @@ function createRoomCard(roomId, config, isOpen) {
   if (!isOpen) link.classList.add('closed');
 
   const thumb = document.createElement('img');
-  thumb.src = `./rooms/${roomId}/thumbnail.jpg`;
-  thumb.alt = config.roomTitle;
+  thumb.src = thumbnailUrl;
+  thumb.alt = roomData.roomTitle || "No Title";
   thumb.onerror = () => { thumb.src = 'noimage.jpg'; };
 
   const info = document.createElement('div');
   info.className = 'room-info';
 
   const title = document.createElement('h3');
-  title.textContent = config.roomTitle;
+  title.textContent = roomData.roomTitle || "タイトル未設定";
 
   const dates = document.createElement('p');
-  dates.textContent = `${config.startDate} ～ ${config.endDate}`;
+  const startStr = roomData.startDate ? roomData.startDate.toLocaleString() : "未設定";
+  const endStr = roomData.endDate ? roomData.endDate.toLocaleString() : "未設定";
+  dates.textContent = `${startStr} ～ ${endStr}`;
 
   const status = document.createElement('p');
   status.textContent = isOpen ? '🔓 公開中' : '🔒 非公開';
@@ -51,29 +74,57 @@ function createRoomCard(roomId, config, isOpen) {
   return container;
 }
 
+/* ----------------------------------------------------
+   Firestore rooms コレクションを読み込み、表示
+---------------------------------------------------- */
 async function renderAllRooms() {
   const container = document.getElementById('roomList');
   container.textContent = '読み込み中...';
 
   try {
-    const config = await loadConfigJson();
-    const rooms = config.rooms;
+    const snapshot = await getDocs(collection(db, "rooms"));
 
     container.textContent = '';
 
-    for (const roomId of rooms) {
+    for (const doc of snapshot.docs) {
+      const roomId = doc.id;
+      const data = doc.data();
+
+      // Timestamp → Date
+      const startDate = data.startDate ? data.startDate.toDate() : null;
+      const endDate = data.endDate ? data.endDate.toDate() : null;
+
+      const isOpen = (startDate && endDate) ? isWithinPeriod(startDate, endDate) : false;
+
+      // サムネイル画像の Storage パス
+      const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.jpg`);
+
+      // URL取得（なければ noimage.jpg）
+      let thumbUrl = "noimage.jpg";
       try {
-        const roomConfig = await loadRoomConfig(roomId);
-        const isOpen = isWithinPeriod(roomConfig.startDate, roomConfig.endDate);
-        const card = createRoomCard(roomId, roomConfig, isOpen);
-        container.appendChild(card);
+        thumbUrl = await getDownloadURL(thumbRef);
       } catch (e) {
-        console.warn(`${roomId} 読み込みエラー:`, e);
+        console.warn(`サムネイル未設定: rooms/${roomId}/thumbnail.jpg`);
       }
+
+      // カード生成
+      const card = createRoomCard(
+        roomId,
+        {
+          roomTitle: data.roomTitle,
+          startDate: startDate,
+          endDate: endDate
+        },
+        thumbUrl,
+        isOpen
+      );
+
+      container.appendChild(card);
     }
+
   } catch (e) {
-    container.textContent = 'ルーム一覧の読み込みに失敗しました。';
     console.error(e);
+    container.textContent = 'ルーム一覧の読み込みに失敗しました。';
   }
 }
 
