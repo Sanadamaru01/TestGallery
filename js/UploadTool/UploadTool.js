@@ -89,6 +89,12 @@ async function onRoomChange() {
     const data = snap.data();
     roomTitleInput.value = data.roomTitle ?? "";
     const tp = data.texturePaths ?? {};
+    
+    thumbnailInput.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      const roomId = roomSelect.value;
+      await handleThumbnailSelect(file, roomId, logArea);
+    });
 
     console.log(`[TRACE] loadAllTextures start with currentValues`);
     await loadAllTextures(
