@@ -48,6 +48,19 @@ export async function loadRoomImages(previewArea, roomId, logArea) {
     console.error(e);
   }
 }
+export async function handleThumbnailSelect(file, roomId, logArea) {
+  if (!file) return;
+
+  // ▼ ファイル名を強制的に thumbnail.webp に上書き
+  const renamedFile = new File([file], "thumbnail.webp", { type: file.type });
+
+  log(`🖼️ サムネイルアップロード開始: thumbnail.webp`, logArea);
+
+  // ▼ 通常の upload 処理をそのまま利用
+  await uploadFiles([renamedFile], roomId, logArea);
+
+  log("✅ サムネイルアップロード完了", logArea);
+}
 
 // -------------------- ファイル選択ハンドラ --------------------
 export function handleFileSelect(fileInput, previewArea, logArea) {
