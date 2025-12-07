@@ -1,5 +1,6 @@
 // ---------------------------------------------
-// portal.js  （Firebase 接続を UploadTool.js と同じ方式に統一）
+// Firestore + Storage 版 portal.js
+// （UI は従来の portal.js と完全互換）
 // ---------------------------------------------
 
 console.log("[TRACE] portal.js loaded");
@@ -16,84 +17,108 @@ import {
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-console.log("[TRACE] Firebase Firestore & Storage obtained:", db, storage);
-
-// -------------------- DOM 取得 --------------------
+// -------------------- DOM --------------------
 const roomList = document.getElementById("roomList");
 
-// 現行の noimage.png（ユーザー指定の位置）
-const noImagePath = "./noimage.jpg";   
+// noimage はユーザーが指定したローカル位置のもの
+const noImagePath = "./noimage.jpg";
 
-// -------------------- 初期化 --------------------
-window.addEventListener("DOMContentLoaded", async () => {
-  console.log("[TRACE] portal DOMContentLoaded");
-  await loadRoomThumbnails();
+// -------------------- 初期処理 --------------------
+window.addEventListener("DOMContentLoaded", () => {
+  console.log("[TRACE] DOMContentLoaded");
+  renderAllRooms();
 });
 
-// -------------------- ルーム一覧読み込み --------------------
-async function loadRoomThumbnails() {
-  console.log("[TRACE] loadRoomThumbnails start");
-
-  roomList.innerHTML = "";
+// -------------------- Firestore rooms 読み込み --------------------
+async function renderAllRooms() {
+  roomList.textContent = "読み込み中...";
 
   try {
     const snap = await getDocs(collection(db, "rooms"));
-    console.log(`[TRACE] rooms count: ${snap.size}`);
+    roomList.textContent = "";
 
-    snap.forEach(roomDoc => {
+    snap.forEach(async (roomDoc) => {
       const roomId = roomDoc.id;
       const data = roomDoc.data();
 
-      const title = data.roomTitle ?? "(no title)";
-      const thumb = data.thumbnail ?? "";  // サムネイルパス（Storage 内）
+      // Firestoreフィールド名（V2構造に準拠）
+      const config = {
+        roomTitle: data.roomTitle ?? "(no title)",
+        startDate: data.startDate ? toDateString(data.startDate) : "",
+        endDate: data.endDate ? toDateString(data.endDate) : "",
+        thumbnail: data.thumbnail ?? ""
+      };
 
-      createRoomCard(roomId, title, thumb);
+      const isOpen = checkOpen(config.startDate, config.endDate);
+      const card = await createRoomCard(roomId, config, isOpen);
+
+      roomList.appendChild(card);
     });
-
   } catch (e) {
-    console.error("[ERROR] loadRoomThumbnails:", e);
+    roomList.textContent = "ルーム一覧の読み込みに失敗しました。";
+    console.error(e);
   }
-
-  console.log("[TRACE] loadRoomThumbnails end");
 }
 
-// -------------------- サムネイル付きルームカード作成 --------------------
-async function createRoomCard(roomId, title, thumbnailPath) {
+// Firestore Timestamp → YYYY/MM/DD
+function toDateString(ts) {
+  if (!ts) return "";
+  const d = ts.toDate();
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
 
-  const card = document.createElement("div");
-  card.classList.add("room-card");
+// 公開期間チェック
+function checkOpen(startStr, endStr) {
+  if (!startStr || !endStr) return false;
+  const now = new Date();
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  return now >= start && now <= end;
+}
 
-  // --- サムネイル画像取得 ---
+// -------------------- UI 旧仕様のカード生成 --------------------
+async function createRoomCard(roomId, config, isOpen) {
+
+  const container = document.createElement('div');
+  container.className = 'room-card';
+
+  // --- <a> リンク ---
+  const link = document.createElement('a');
+  link.href = `./rooms/${roomId}/index.html`;
+  if (!isOpen) link.classList.add('closed');
+
+  // --- サムネイル画像 ---
+  const thumb = document.createElement('img');
+  thumb.alt = config.roomTitle;
+
   let imgURL = noImagePath;
-
-  if (thumbnailPath) {
+  if (config.thumbnail) {
     try {
-      const storageRef = ref(storage, thumbnailPath);
-      imgURL = await getDownloadURL(storageRef);
+      imgURL = await getDownloadURL(ref(storage, config.thumbnail));
     } catch (e) {
-      console.warn(`[WARN] サムネイル取得失敗 (${roomId}) → noimage`, e);
+      console.warn(`[WARN] thumbnail missing for ${roomId}`, e);
     }
   }
+  thumb.src = imgURL;
+  thumb.onerror = () => { thumb.src = noImagePath; };
 
-  // --- カード HTML ---
-  card.innerHTML = `
-    <div class="room-thumb-wrapper">
-      <img class="room-thumb" src="${imgURL}" alt="thumbnail">
-    </div>
+  // --- 情報ブロック ---
+  const info = document.createElement('div');
+  info.className = 'room-info';
 
-    <div class="room-title">${title}</div>
+  const title = document.createElement('h3');
+  title.textContent = config.roomTitle;
 
-    <button class="enter-room" data-room="${roomId}">
-      Enter
-    </button>
-  `;
+  const dates = document.createElement('p');
+  dates.textContent = `${config.startDate} ～ ${config.endDate}`;
 
-  roomList.appendChild(card);
+  const status = document.createElement('p');
+  status.textContent = isOpen ? '🔓 公開中' : '🔒 非公開';
 
-  // --- クリックでギャラリーへ入場 ---
-  const btn = card.querySelector(".enter-room");
-  btn.addEventListener("click", () => {
-    console.log(`[TRACE] Entering room: ${roomId}`);
-    window.location.href = `./gallery.html?room=${roomId}`;
-  });
+  // --- DOM 組み立て ---
+  info.append(title, dates, status);
+  link.append(thumb, info);
+  container.appendChild(link);
+
+  return container;
 }
