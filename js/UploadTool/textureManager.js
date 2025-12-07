@@ -1,6 +1,6 @@
 // textureManager.js
 import { getStorage, ref, listAll } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { app } from './firebaseInit.js';
+import { app } from '../firebaseInit.js';
 import { log } from './utils.js';
 
 // Firebase Storage インスタンス
