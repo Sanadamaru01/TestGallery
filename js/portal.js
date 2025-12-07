@@ -51,6 +51,8 @@ function createRoomCard(roomId, roomData, thumbnailUrl, isOpen) {
   const thumb = document.createElement('img');
   thumb.src = thumbnailUrl;
   thumb.alt = roomData.roomTitle || "No Title";
+
+  // ← 元コードと同じ fallback（画像読み込み失敗時）
   thumb.onerror = () => { thumb.src = 'noimage.jpg'; };
 
   const info = document.createElement('div');
@@ -96,12 +98,12 @@ async function renderAllRooms() {
 
       const isOpen = (startDate && endDate) ? isWithinPeriod(startDate, endDate) : false;
 
-      // サムネイル画像の Storage パス
-      const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.jpg`);
-
-      // URL取得（なければ noimage.jpg）
-      let thumbUrl = "noimage.jpg";
+      // ----------------------------------------------------
+      // サムネイル取得（元コードと同じく fallback あり）
+      // ----------------------------------------------------
+      let thumbUrl = "noimage.jpg"; // ① getDownloadURL 失敗時の fallback
       try {
+        const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.jpg`);
         thumbUrl = await getDownloadURL(thumbRef);
       } catch (e) {
         console.warn(`サムネイル未設定: rooms/${roomId}/thumbnail.jpg`);
