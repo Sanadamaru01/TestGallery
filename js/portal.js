@@ -1,5 +1,5 @@
 // ---------------------------------------------
-// Firestore + Storage 版 portal.js
+// Firestore + Storage 版 portal.js（フルコード）
 // （UI は従来の portal.js と完全互換）
 // ---------------------------------------------
 
@@ -20,7 +20,7 @@ const storage = getStorage(app);
 // -------------------- DOM --------------------
 const roomList = document.getElementById("roomList");
 
-// noimage はユーザーが指定したローカル位置のもの
+// noimage はユーザーが管理するローカル画像
 const noImagePath = "./noimage.jpg";
 
 // -------------------- 初期処理 --------------------
@@ -41,12 +41,12 @@ async function renderAllRooms() {
       const roomId = roomDoc.id;
       const data = roomDoc.data();
 
-      // Firestoreフィールド名（V2構造に準拠）
+      // Firestore フィールド（V2構造準拠）
       const config = {
         roomTitle: data.roomTitle ?? "(no title)",
         startDate: data.startDate ? toDateString(data.startDate) : "",
-        endDate: data.endDate ? toDateString(data.endDate) : "",
-        thumbnail: data.thumbnail ?? ""
+        endDate: data.endDate ? toDateString(data.endDate) : ""
+        // thumbnail は Firestore に保存しない方針
       };
 
       const isOpen = checkOpen(config.startDate, config.endDate);
@@ -60,14 +60,14 @@ async function renderAllRooms() {
   }
 }
 
-// Firestore Timestamp → YYYY/MM/DD
+// -------------------- Firestore Timestamp → YYYY/MM/DD --------------------
 function toDateString(ts) {
   if (!ts) return "";
   const d = ts.toDate();
   return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
 }
 
-// 公開期間チェック
+// -------------------- 公開期間チェック --------------------
 function checkOpen(startStr, endStr) {
   if (!startStr || !endStr) return false;
   const now = new Date();
@@ -87,18 +87,18 @@ async function createRoomCard(roomId, config, isOpen) {
   link.href = `./rooms/${roomId}/index.html`;
   if (!isOpen) link.classList.add('closed');
 
-  // --- サムネイル画像 ---
+  // --- サムネイル画像（Storage 固定パス方式） ---
   const thumb = document.createElement('img');
   thumb.alt = config.roomTitle;
 
   let imgURL = noImagePath;
-  if (config.thumbnail) {
-    try {
-      imgURL = await getDownloadURL(ref(storage, config.thumbnail));
-    } catch (e) {
-      console.warn(`[WARN] thumbnail missing for ${roomId}`, e);
-    }
+  try {
+    const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.webp`);
+    imgURL = await getDownloadURL(thumbRef);
+  } catch (e) {
+    console.warn(`[WARN] no thumbnail for ${roomId}`);
   }
+
   thumb.src = imgURL;
   thumb.onerror = () => { thumb.src = noImagePath; };
 
