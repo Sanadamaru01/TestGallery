@@ -207,29 +207,38 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   }
 
   // --- 更新処理 ---
-  updateBtn.addEventListener("click", async () => {
-    if (!isExisting) {
-      statusText.textContent = "(未アップロードプレビュー)";
+updateBtn.addEventListener("click", async () => {
+  if (!isExisting) {
+    statusText.textContent = "(未アップロードプレビュー)";
+    return;
+  }
+  try {
+    // ★ thumbnail 用 特別処理
+    const isThumbnail = data.file === "thumbnail.webp";
+    if (isThumbnail) {
+      statusText.textContent = "サムネイルはメタデータ無しで固定です";
+      log("🖼️ サムネイルは画像のみ管理し、テキスト情報を更新しません", logArea);
       return;
     }
-    try {
-      const newTitle = titleInput.value.trim();
-      const newCaption = captionInput.value.trim();
-      const newAuthor = authorInput.value.trim();
-      await updateDoc(doc(db, `rooms/${roomId}/images/${docId}`), {
-        title: newTitle,
-        caption: newCaption,
-        author: newAuthor,
-        updatedAt: serverTimestamp()
-      });
-      statusText.textContent = "更新済み";
-      log(`📝 ${newTitle || docId} を更新しました`, logArea);
-    } catch (e) {
-      statusText.textContent = "更新失敗";
-      log(`❌ 更新失敗: ${e.message}`, logArea);
-      console.error(e);
-    }
-  });
+
+    const newTitle = titleInput.value.trim();
+    const newCaption = captionInput.value.trim();
+    const newAuthor = authorInput.value.trim();
+
+    await updateDoc(doc(db, `rooms/${roomId}/images/${docId}`), {
+      title: newTitle,
+      caption: newCaption,
+      author: newAuthor,
+      updatedAt: serverTimestamp()
+    });
+    statusText.textContent = "更新済み";
+    log(`📝 ${newTitle || docId} を更新しました`, logArea);
+  } catch (e) {
+    statusText.textContent = "更新失敗";
+    log(`❌ 更新失敗: ${e.message}`, logArea);
+    console.error(e);
+  }
+});
 
   // --- 削除処理 ---
   deleteBtn.addEventListener("click", async () => {
