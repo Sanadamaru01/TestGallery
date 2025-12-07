@@ -22,7 +22,7 @@ console.log("[TRACE] Firebase Firestore & Storage obtained:", db, storage);
 const roomList = document.getElementById("roomList");
 
 // 現行の noimage.png（ユーザー指定の位置）
-const noImagePath = "./img/noimage.png";   
+const noImagePath = "./noimage.png";   
 
 // -------------------- 初期化 --------------------
 window.addEventListener("DOMContentLoaded", async () => {
