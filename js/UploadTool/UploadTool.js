@@ -6,6 +6,8 @@ import { log } from './utils.js';
 import { loadAllTextures } from './textureManager.js';
 import { loadRoomImages, handleFileSelect, uploadFiles } from './imageRowManager.js';
 
+import { app } from '../firebaseInit.js';
+
 import {
   getFirestore, collection, getDocs, doc,
   getDoc, updateDoc, serverTimestamp
@@ -15,11 +17,14 @@ import {
   getStorage, ref, uploadBytesResumable, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+import { resizeImageToWebp } from './imageUtils.js';
+
 // --------------------------------------------------
 // Firebase 初期化
 // --------------------------------------------------
-const db = getFirestore();
-const storage = getStorage();
+const db = getFirestore(app);
+const storage = getStorage(app);
+
 
 // --------------------------------------------------
 // UI 要素取得
