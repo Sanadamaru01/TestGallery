@@ -7,7 +7,9 @@ import { log, resizeImageToWebp } from './utils.js';
 const storage = getStorage(app);
 const db = getFirestore(app);
 
-// -------------------- 画像一覧読み込み --------------------
+// =========================================================
+// 画像一覧読み込み
+// =========================================================
 export async function loadRoomImages(previewArea, roomId, logArea) {
   if (!roomId) return;
   previewArea.innerHTML = "";
@@ -25,64 +27,62 @@ export async function loadRoomImages(previewArea, roomId, logArea) {
 
     for (const imgDoc of imagesSnap.docs) {
       const data = imgDoc.data();
-      // data.file は過去の実装により file名だったり Storage URL だったりする可能性あり
-      // 優先順: 1) downloadURL がそのまま入っている -> 使う
-      //           2) file 名のみ -> Storage から getDownloadURL を取得
+
       let downloadURL = data.downloadURL || "";
       if (!downloadURL && data.file) {
         try {
-          // file が単純なファイル名の場合は rooms/{roomId}/{file} を参照
-          // もし file に "share/..." のような相対パスが入っている場合はそのまま ref を作る
-          const storagePath = data.file.includes('/') ? data.file : `rooms/${roomId}/${data.file}`;
+          const storagePath = data.file.includes('/')
+            ? data.file
+            : `rooms/${roomId}/${data.file}`;
           const storageRef = ref(storage, storagePath);
           downloadURL = await getDownloadURL(storageRef);
         } catch (e) {
-          // 取得失敗しても UI は作る（画像欄は空になる）
           log(`❌ 画像 URL 取得失敗: ${data.file} - ${e.message}`, logArea);
         }
       }
-      createImageRow(previewArea, roomId, imgDoc.id, {...data, downloadURL}, true, logArea);
+
+      createImageRow(previewArea, roomId, imgDoc.id, { ...data, downloadURL }, true, logArea);
     }
   } catch (e) {
     log(`❌ 画像読み込みエラー: ${e.message}`, logArea);
     console.error(e);
   }
 }
-export async function handleThumbnailSelect(file, roomId, logArea) {
-  if (!file) return;
 
-  // ▼ ファイル名を強制的に thumbnail.webp に上書き
-  const renamedFile = new File([file], "thumbnail.webp", { type: file.type });
 
-  log(`🖼️ サムネイルアップロード開始: thumbnail.webp`, logArea);
-
-  // ▼ 通常の upload 処理をそのまま利用
-  await uploadFiles([renamedFile], roomId, logArea);
-
-  log("✅ サムネイルアップロード完了", logArea);
-}
-
-// -------------------- ファイル選択ハンドラ --------------------
+// =========================================================
+// ファイル選択（サムネイル判定付き）
+// =========================================================
 export function handleFileSelect(fileInput, previewArea, logArea) {
   fileInput.addEventListener("change", () => {
-    // 選択したファイルをプレビューエリアに短く表示（アップロード前の行として）
     const files = Array.from(fileInput.files || []);
+
     for (const file of files) {
+      // ▼ サムネイル判定（thumb / thumbnail）
+      const isThumbnail =
+        file.name.toLowerCase().includes("thumb") ||
+        file.name.toLowerCase().includes("thumbnail");
+
       const previewURL = URL.createObjectURL(file);
-      // 新規プレビュー行。docId は一時 UUID を使う（Firestore に保存時に新しい doc が作られる）
+
       createImageRow(previewArea, null, crypto.randomUUID(), {
         title: file.name,
         caption: "",
         author: "",
         downloadURL: previewURL,
-        _fileObject: file
+        _fileObject: file,
+        fileNameFixed: isThumbnail ? "thumbnail.webp" : null
       }, false, logArea);
     }
+
     log(`${files.length} 件の画像を選択しました`, logArea);
   });
 }
 
-// -------------------- ファイルアップロード --------------------
+
+// =========================================================
+// ファイルアップロード本体
+// =========================================================
 export async function uploadFiles(previewArea, roomId, logArea) {
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const uploadRows = rows.filter(r => r._fileObject);
@@ -101,19 +101,34 @@ export async function uploadFiles(previewArea, roomId, logArea) {
 
     try {
       const blob = await resizeImageToWebp(fileObj, 1600);
-      const fileName = crypto.randomUUID() + ".webp";
+
+      // ▼ サムネイルならファイル名固定
+      const fileName = row._fileNameFixed
+        ? row._fileNameFixed
+        : crypto.randomUUID() + ".webp";
+
       const storagePath = `rooms/${roomId}/${fileName}`;
       const storageRef = ref(storage, storagePath);
 
-      // upload
+      // ▼ サムネイルは既存を削除して上書き
+      if (row._fileNameFixed) {
+        try {
+          await deleteObject(storageRef);
+          log(`サムネイル既存削除: ${storagePath}`, logArea);
+        } catch (_) {
+          // なければ無視
+        }
+      }
+
       await uploadBytesResumable(storageRef, blob);
       const downloadURL = await getDownloadURL(storageRef);
 
-      // Firestore に登録（fileフィールドはファイル名で保存する従来実装と、downloadURLを併記）
       await addDoc(collection(db, `rooms/${roomId}/images`), {
         file: fileName,
         downloadURL,
-        title, caption, author,
+        title,
+        caption,
+        author,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
@@ -125,13 +140,14 @@ export async function uploadFiles(previewArea, roomId, logArea) {
     }
   }
 
-  // 再読み込み
   await loadRoomImages(previewArea, roomId, logArea);
 }
 
-// -------------------- 画像行作成（既存 or 新規プレビュー） --------------------
+
+// =========================================================
+// UI：画像行作成
+// =========================================================
 function createImageRow(previewArea, roomId, docId, data, isExisting = false, logArea) {
-  // row
   const row = document.createElement("div");
   row.className = "file-row";
   row.style.display = "flex";
@@ -139,7 +155,15 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   row.style.alignItems = "flex-start";
   row.style.marginBottom = "8px";
 
-  // image
+  // ▼ サムネイル名固定フラグを保持（uploadFiles で参照）
+  row._fileNameFixed = data.fileNameFixed || null;
+
+  // ▼ 新規の時のみ FileObject を保持
+  if (data._fileObject) {
+    row._fileObject = data._fileObject;
+  }
+
+  // ----- 画像 -----
   const img = document.createElement("img");
   img.src = data.downloadURL || "";
   img.alt = data.title || "(no title)";
@@ -147,127 +171,39 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   img.style.height = "120px";
   img.style.objectFit = "cover";
   img.style.background = "#f0f0f0";
+  row.appendChild(img);
 
-  // meta (inputs + buttons)
+  // ----- メタ情報入力 -----
   const meta = document.createElement("div");
   meta.className = "file-meta";
-  meta.style.display = "flex";
-  meta.style.flexDirection = "column";
-  meta.style.gap = "6px";
+  meta.style.flex = "1";
 
-  // inputs
+  // タイトル
   const titleInput = document.createElement("input");
-  titleInput.type = "text";
-  titleInput.className = "titleInput";
   titleInput.placeholder = "タイトル";
   titleInput.value = data.title || "";
+  titleInput.className = "titleInput";
+  titleInput.style.width = "100%";
 
-  const captionInput = document.createElement("input");
-  captionInput.type = "text";
-  captionInput.className = "captionInput";
+  // キャプション
+  const captionInput = document.createElement("textarea");
   captionInput.placeholder = "キャプション";
   captionInput.value = data.caption || "";
+  captionInput.className = "captionInput";
+  captionInput.style.width = "100%";
 
+  // 作者
   const authorInput = document.createElement("input");
-  authorInput.type = "text";
-  authorInput.className = "authorInput";
   authorInput.placeholder = "作者";
   authorInput.value = data.author || "";
-
-  // button area
-  const btnWrap = document.createElement("div");
-  btnWrap.style.display = "flex";
-  btnWrap.style.gap = "6px";
-  btnWrap.style.alignItems = "center";
-
-  const updateBtn = document.createElement("button");
-  updateBtn.className = "updateBtn";
-  updateBtn.textContent = isExisting ? "更新" : "（プレビュー）";
-
-  const deleteBtn = document.createElement("button");
-  deleteBtn.className = "deleteBtn";
-  deleteBtn.textContent = "削除";
-
-  const statusText = document.createElement("div");
-  statusText.className = "statusText small";
-  statusText.style.marginLeft = "6px";
-
-  btnWrap.appendChild(updateBtn);
-  btnWrap.appendChild(deleteBtn);
-  btnWrap.appendChild(statusText);
+  authorInput.className = "authorInput";
+  authorInput.style.width = "100%";
 
   meta.appendChild(titleInput);
   meta.appendChild(captionInput);
   meta.appendChild(authorInput);
-  meta.appendChild(btnWrap);
 
-  // attach file object for new previews (so upload can find it)
-  if (!isExisting && data._fileObject) {
-    row._fileObject = data._fileObject;
-  }
-
-  // --- 更新処理 ---
-updateBtn.addEventListener("click", async () => {
-  if (!isExisting) {
-    statusText.textContent = "(未アップロードプレビュー)";
-    return;
-  }
-  try {
-    // ★ thumbnail 用 特別処理
-    const isThumbnail = data.file === "thumbnail.webp";
-    if (isThumbnail) {
-      statusText.textContent = "サムネイルはメタデータ無しで固定です";
-      log("🖼️ サムネイルは画像のみ管理し、テキスト情報を更新しません", logArea);
-      return;
-    }
-
-    const newTitle = titleInput.value.trim();
-    const newCaption = captionInput.value.trim();
-    const newAuthor = authorInput.value.trim();
-
-    await updateDoc(doc(db, `rooms/${roomId}/images/${docId}`), {
-      title: newTitle,
-      caption: newCaption,
-      author: newAuthor,
-      updatedAt: serverTimestamp()
-    });
-    statusText.textContent = "更新済み";
-    log(`📝 ${newTitle || docId} を更新しました`, logArea);
-  } catch (e) {
-    statusText.textContent = "更新失敗";
-    log(`❌ 更新失敗: ${e.message}`, logArea);
-    console.error(e);
-  }
-});
-
-  // --- 削除処理 ---
-  deleteBtn.addEventListener("click", async () => {
-    if (!confirm("本当に削除しますか？")) return;
-    try {
-      if (isExisting) {
-        // Firestore ドキュメント削除
-        await deleteDoc(doc(db, `rooms/${roomId}/images/${docId}`));
-        // Storage 削除（もし file がファイル名で保存されていれば rooms/{roomId}/{file} を削除）
-        if (data.file) {
-          try {
-            const storagePath = data.file.includes('/') ? data.file : `rooms/${roomId}/${data.file}`;
-            const storageRef = ref(storage, storagePath);
-            await deleteObject(storageRef);
-            log(`🗑️ Storage: ${storagePath} を削除しました`, logArea);
-          } catch (e) {
-            log(`⚠️ Storage 削除でエラー: ${e.message}`, logArea);
-          }
-        }
-      }
-      row.remove();
-      log(`❌ ${data.title || docId} を削除しました`, logArea);
-    } catch (err) {
-      log(`❌ 削除に失敗しました: ${err.message}`, logArea);
-      console.error(err);
-    }
-  });
-
-  row.appendChild(img);
   row.appendChild(meta);
+
   previewArea.appendChild(row);
 }
