@@ -1,7 +1,7 @@
 // imageRowManager.js
 import { getStorage, ref, listAll, getDownloadURL, uploadBytesResumable, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { getFirestore, collection, doc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { app } from './firebaseInit.js';
+import { app } from '../firebaseInit.js';
 import { log, resizeImageToWebp } from './utils.js';
 
 const storage = getStorage(app);
