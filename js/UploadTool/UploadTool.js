@@ -20,6 +20,7 @@ const updateTextureBtn = document.getElementById("updateTextureBtn");
 const fileInput = document.getElementById("fileInput");
 const previewArea = document.getElementById("previewArea");
 const uploadBtn = document.getElementById("uploadBtn");
+const thumbnailInput = document.getElementById("thumbnailInput");
 
 const logArea = document.getElementById("log");
 const db = getFirestore(app);
@@ -68,6 +69,9 @@ async function loadRooms() {
 roomSelect.addEventListener("change", async () => {
   console.log("[TRACE] roomSelect change event");
   await onRoomChange();
+});
+thumbnailInput.addEventListener("change", async (e) => {
+  await handleThumbnailSelect(e.target.files[0]);
 });
 
 // -------------------- ルーム変更 --------------------
