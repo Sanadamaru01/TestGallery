@@ -17,8 +17,6 @@ import {
   getStorage, ref, uploadBytesResumable, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-import { resizeImageToWebp } from './imageUtils.js';
-
 // --------------------------------------------------
 // Firebase 初期化
 // --------------------------------------------------
