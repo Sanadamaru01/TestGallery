@@ -3,7 +3,7 @@ import { log } from './utils.js';
 import { loadAllTextures } from './textureManager.js';
 import { loadRoomImages, handleFileSelect, uploadFiles } from './imageRowManager.js';
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { app } from './firebaseInit.js';
+import { app } from '../firebaseInit.js';
 
 console.log("[TRACE] UploadTool.js loaded");
 
