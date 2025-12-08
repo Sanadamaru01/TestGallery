@@ -1,8 +1,3 @@
-// ---------------------------------------------
-// Firestore + Storage 版 portal.js（フルコード）
-// （UI は従来の portal.js と完全互換）
-// ---------------------------------------------
-
 console.log("[TRACE] portal.js loaded");
 
 // -------------------- Firebase 接続 --------------------
@@ -19,8 +14,6 @@ const storage = getStorage(app);
 
 // -------------------- DOM --------------------
 const roomList = document.getElementById("roomList");
-
-// noimage はユーザーが管理するローカル画像
 const noImagePath = "./noimage.jpg";
 
 // -------------------- 初期処理 --------------------
@@ -41,12 +34,10 @@ async function renderAllRooms() {
       const roomId = roomDoc.id;
       const data = roomDoc.data();
 
-      // Firestore フィールド（V2構造準拠）
       const config = {
         roomTitle: data.roomTitle ?? "(no title)",
         startDate: data.startDate ? toDateString(data.startDate) : "",
         endDate: data.endDate ? toDateString(data.endDate) : ""
-        // thumbnail は Firestore に保存しない方針
       };
 
       const isOpen = checkOpen(config.startDate, config.endDate);
@@ -76,19 +67,18 @@ function checkOpen(startStr, endStr) {
   return now >= start && now <= end;
 }
 
-// -------------------- UI 旧仕様のカード生成 --------------------
+// -------------------- UI カード生成 --------------------
 async function createRoomCard(roomId, config, isOpen) {
 
   const container = document.createElement('div');
   container.className = 'room-card';
 
-  // --- <a> リンク --- 
-  // 変更：room.html + URL パラメータ方式に変更
+  // --- <a> リンク ---
   const link = document.createElement('a');
-  link.href = `./room.html?roomId=${roomId}`;
+  link.href = `./room.html?roomId=${roomId}`; // トップ直下に変更
   if (!isOpen) link.classList.add('closed');
 
-  // --- サムネイル画像（Storage 固定パス方式） ---
+  // --- サムネイル画像（Storage 参照） ---
   const thumb = document.createElement('img');
   thumb.alt = config.roomTitle;
 
