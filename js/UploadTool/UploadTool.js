@@ -104,7 +104,7 @@ async function onRoomChange() {
     console.log("[TRACE] loadAllTextures done");
 
     console.log("[TRACE] loadRoomImages start");
-    await loadRoomImages(roomId, previewArea, logArea); // 引数順序は imageRowManager.js に合わせる
+    await loadRoomImages(previewArea, roomId, logArea); // ✅ 引数順序修正
     console.log("[TRACE] loadRoomImages done");
 
   } catch (e) {
@@ -119,11 +119,11 @@ uploadBtn.addEventListener("click", async () => {
   if (!roomId) { log("[WARN] ルームを選択してください", logArea); return; }
 
   console.log(`[TRACE] uploadFiles start for room: ${roomId}`);
-  await uploadFiles(roomId, previewArea, logArea); // 引数を元のシグネチャに合わせる
+  await uploadFiles(previewArea, roomId, logArea); // ✅ 引数順序修正
   console.log(`[TRACE] uploadFiles done for room: ${roomId}`);
 
   // 再読み込み
-  await loadRoomImages(roomId, previewArea, logArea);
+  await loadRoomImages(previewArea, roomId, logArea); // ✅ 引数順序修正
 });
 
 // -------------------- ルームタイトル更新 --------------------
