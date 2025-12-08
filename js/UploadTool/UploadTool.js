@@ -13,6 +13,12 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+import {
+  getStorage,
+  ref as storageRef,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
 import { app } from '../firebaseInit.js';
 
 const db = getFirestore(app);
@@ -37,7 +43,6 @@ const floorSelect = document.getElementById("floorTexture");
 const ceilingSelect = document.getElementById("ceilingTexture");
 const doorSelect = document.getElementById("doorTexture");
 
-
 // -------------------------------
 // 初期ロード
 // -------------------------------
@@ -45,7 +50,6 @@ window.addEventListener("DOMContentLoaded", async () => {
   await loadRooms();
   handleFileSelect(fileInput, previewArea, logArea);
 });
-
 
 // -------------------------------
 // rooms 読み込み
@@ -70,7 +74,6 @@ async function loadRooms() {
 
 roomSelect.addEventListener("change", onRoomChange);
 
-
 // -------------------------------
 // room 切替時
 // -------------------------------
@@ -90,8 +93,7 @@ async function onRoomChange() {
   await loadRoomImages(roomId, previewArea, logArea);
 
   // -------------------------------
-  //  テクスチャ（旧方式の復活）
-  //  → select に currentValue を渡すだけ
+  //  テクスチャ（旧方式）
   // -------------------------------
   const tex = data.texturePaths ?? {};
 
@@ -112,8 +114,21 @@ async function onRoomChange() {
     logArea,
     currentValues
   );
-}
 
+  // -------------------------------
+  // サムネイル読み込み（Storage）
+  // -------------------------------
+  const storage = getStorage(app);
+  const thumbRef = storageRef(storage, `rooms/${roomId}/thumbnail.webp`);
+
+  try {
+    const url = await getDownloadURL(thumbRef);
+    document.getElementById("thumbnailImg").src = url;
+  } catch (e) {
+    // サムネイルが無い場合
+    document.getElementById("thumbnailImg").src = "/noimage.webp";
+  }
+}
 
 // -------------------------------
 // テクスチャ保存（旧方式）
@@ -132,24 +147,11 @@ async function saveTexture(type, value) {
   log(`[INFO] ${type} テクスチャ更新: ${value}`, logArea);
 }
 
-
-// --- select change 時に Firestore に保存 ---
-wallSelect.addEventListener("change", () => {
-  saveTexture("wall", wallSelect.value);
-});
-
-floorSelect.addEventListener("change", () => {
-  saveTexture("floor", floorSelect.value);
-});
-
-ceilingSelect.addEventListener("change", () => {
-  saveTexture("ceiling", ceilingSelect.value);
-});
-
-doorSelect.addEventListener("change", () => {
-  saveTexture("door", doorSelect.value);
-});
-
+// --- select change ---
+wallSelect.addEventListener("change", () => saveTexture("wall", wallSelect.value));
+floorSelect.addEventListener("change", () => saveTexture("floor", floorSelect.value));
+ceilingSelect.addEventListener("change", () => saveTexture("ceiling", ceilingSelect.value));
+doorSelect.addEventListener("change", () => saveTexture("door", doorSelect.value));
 
 // -------------------------------
 // 通常アップロード
@@ -163,7 +165,6 @@ uploadBtn.addEventListener("click", async () => {
   await uploadFiles(previewArea, roomId, logArea);
 });
 
-
 // -------------------------------
 // サムネイルアップロード（変更禁止）
 // -------------------------------
@@ -173,7 +174,6 @@ thumbnailFileInput.addEventListener("change", async () => {
   const file = thumbnailFileInput.files[0];
   if (file) await handleThumbnailSelect(file, roomSelect.value, logArea);
 });
-
 
 // -------------------------------
 // タイトル更新
@@ -189,4 +189,3 @@ updateRoomBtn.addEventListener("click", async () => {
 
   log(`[INFO] ルームタイトル更新: ${roomTitleInput.value}`, logArea);
 });
-
