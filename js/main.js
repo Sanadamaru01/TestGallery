@@ -5,15 +5,16 @@ import { updateRoomLinksUI } from './roomLinks.js';
 
 // URL から roomId を取得
 function getCurrentRoomId() {
-  const match = location.pathname.match(/\/(room\d+)\//);
-  return match ? match[1] : null;
+  // トップ直下に room.html がある場合でも、roomId は URL パラメータやクエリで取得する方が安全です
+  // ここでは仮に ?room=room1 の形式を想定
+  const params = new URLSearchParams(location.search);
+  return params.get('room');
 }
 
 const roomId = getCurrentRoomId();
 if (!roomId) {
   console.error("❌ roomId が取得できません");
 } else {
-  // Firestore から部屋情報取得
   loadRoomDataFromFirestore(roomId)
     .then(({ config, images, raw }) => {
       const allowed = checkAccessAndShowMessage(raw.startDate, raw.endDate);
@@ -23,8 +24,12 @@ if (!roomId) {
       document.getElementById('titleText').textContent = title;
       document.title = title;
 
-      initGallery(images, config, `./images/`);
-      updateRoomLinksUI(roomId); // 前後リンク反映
+      // ★ 画像パスをトップ直下に合わせて修正
+      // images フォルダもトップ直下に配置すると仮定
+      initGallery(images, config, `./rooms/${roomId}/images/`);
+
+      // ★ 前後リンクも room.html を参照するように変更
+      updateRoomLinksUI(roomId, 'room.html');
     })
     .catch(err => {
       console.error('部屋情報の取得に失敗:', err);
@@ -33,4 +38,3 @@ if (!roomId) {
       msg.textContent = 'ギャラリー情報の読み込みに失敗しました。';
       document.body.appendChild(msg);
     });
-}
