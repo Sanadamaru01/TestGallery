@@ -109,11 +109,11 @@
   <div id="message" class="message" style="display:none;"></div>
 
   <!-- Firestore から前後部屋リンクを更新 -->
-  <script type="module" src="../../js/roomLinks.js"></script>
+  <script type="module" src="./js/roomLinks.js"></script>
 
   <!-- ギャラリー描画 -->
   <script type="module">
-    import { initGalleryFromRoomId } from '../../js/main.js';
+    import { initGalleryFromRoomId } from './js/main.js';
 
     // URLパラメータから roomId を取得
     const params = new URLSearchParams(window.location.search);
