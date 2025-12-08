@@ -3,10 +3,8 @@ import { checkAccessAndShowMessage } from './accessControl.js';
 import { initGallery } from './gallery.js';
 import { updateRoomLinksUI } from './roomLinks.js';
 
-// URL から roomId を取得
+// URL から roomId を取得（?room=roomX の形式）
 function getCurrentRoomId() {
-  // トップ直下に room.html がある場合でも、roomId は URL パラメータやクエリで取得する方が安全です
-  // ここでは仮に ?room=room1 の形式を想定
   const params = new URLSearchParams(location.search);
   return params.get('room');
 }
@@ -24,12 +22,12 @@ if (!roomId) {
       document.getElementById('titleText').textContent = title;
       document.title = title;
 
-      // ★ 画像パスをトップ直下に合わせて修正
-      // images フォルダもトップ直下に配置すると仮定
+      // ★ 画像パスを各ルーム直下に変更
       initGallery(images, config, `./rooms/${roomId}/images/`);
 
-      // ★ 前後リンクも room.html を参照するように変更
+      // ★ 前後リンクも room.html を参照する形式に変更
       updateRoomLinksUI(roomId, 'room.html');
+
     })
     .catch(err => {
       console.error('部屋情報の取得に失敗:', err);
