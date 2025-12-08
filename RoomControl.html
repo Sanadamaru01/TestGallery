@@ -1,105 +1,105 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <title>RoomControlTool — TestGallery</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <title>Room Control Tool</title>
+
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 1rem; background:#fafafa; color:#111; }
-    header { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; }
-    h1 { font-size:1.1rem; margin:0; }
-    .layout { display:grid; grid-template-columns: 360px 1fr; gap:1rem; }
-    .panel { background:#fff; border:1px solid #e5e7eb; padding:0.8rem; border-radius:8px; box-shadow:0 1px 2px rgba(0,0,0,0.03); }
-    .room-list { display:flex; flex-direction:column; gap:0.5rem; max-height:72vh; overflow:auto; padding-right:4px; }
-    .room-card { display:flex; gap:0.6rem; padding:0.5rem; align-items:center; border-radius:6px; cursor:pointer; }
-    .room-card:hover { background:#f3f4f6; }
-    .thumb { width:64px; height:64px; object-fit:cover; background:#f0f0f0; border-radius:4px; border:1px solid #ddd; }
-    .room-meta { display:flex; flex-direction:column; gap:4px; font-size:0.9rem; }
-    .room-meta .title { font-weight:600; }
-    .controls { display:flex; gap:0.5rem; margin-top:0.6rem; flex-wrap:wrap; }
-    label { display:block; font-size:0.85rem; margin-top:0.5rem; color:#444; }
-    input[type="text"], input[type="datetime-local"], select { width:100%; padding:0.45rem; border:1px solid #ddd; border-radius:6px; background:#fff; }
-    button { padding:0.45rem 0.7rem; border-radius:6px; border:1px solid #d1d5db; background:#fff; cursor:pointer; }
-    button.primary { background:#0369a1; color:#fff; border-color:transparent; }
-    button.danger { background:#ef4444; color:#fff; border-color:transparent; }
-    .log { height:160px; overflow:auto; white-space:pre-wrap; font-size:0.85rem; background:#0f172a; color:#e6eef8; padding:0.6rem; border-radius:6px; }
-    .big { font-size:0.95rem; }
-    .row { display:flex; gap:0.5rem; align-items:center; }
-    .flex { display:flex; gap:0.5rem; }
-    .spaced { display:flex; justify-content:space-between; align-items:center; gap:0.5rem; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .room-card {
+      display: flex;
+      gap: 16px;
+      border: 1px solid #ccc;
+      padding: 12px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      align-items: center;
+    }
+
+    .room-card.selected {
+      border-color: #0080ff;
+      background: #eef7ff;
+    }
+
+    .thumb {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border: 1px solid #ddd;
+      background: #fafafa;
+    }
+
+    .room-info {
+      flex: 1;
+    }
+
+    .form-block {
+      margin-top: 24px;
+      padding: 16px;
+      border: 1px solid #ccc;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+    }
+
+    input[type="date"],
+    input[type="text"],
+    input[type="number"] {
+      width: 200px;
+    }
+
+    .btn {
+      margin-top: 20px;
+      padding: 8px 16px;
+      display: inline-block;
+      cursor: pointer;
+      background: #0080ff;
+      color: white;
+      border: none;
+    }
+
+    .btn.danger {
+      background: #cc0000;
+    }
   </style>
 </head>
+
 <body>
-  <header>
-    <h1>RoomControlTool — TestGallery</h1>
-    <div class="spaced">
-      <div style="margin-right:0.6rem;">管理用ツール</div>
-      <div>
-        <button id="refreshBtn">更新</button>
-      </div>
-    </div>
-  </header>
+  <h2>Room Control Tool</h2>
 
-  <div class="layout">
-    <!-- 左：ルーム一覧 -->
-    <aside class="panel">
-      <div style="display:flex; gap:0.5rem; margin-bottom:0.6rem;">
-        <input type="text" id="newRoomId" placeholder="room id (省略で自動)" />
-        <input type="text" id="newRoomTitle" placeholder="room title" />
-        <button id="createRoomBtn" class="primary">新規作成</button>
-      </div>
+  <div id="roomList"></div>
 
-      <div class="room-list panel-inner" id="roomList">
-        読み込み中...
-      </div>
-    </aside>
+  <div id="editArea" class="form-block" style="display:none;">
+    <h3>ルーム設定</h3>
 
-    <!-- 右：選択ルーム詳細 / 操作 -->
-    <main class="panel">
-      <div id="detailArea">
-        <p class="big">ルームを左から選択してください</p>
-      </div>
+    <label>ルームタイトル：
+      <input type="text" id="roomTitleInput" />
+    </label>
 
-      <hr style="margin:10px 0; border:none; border-top:1px solid #eee" />
+    <label>Start Date：
+      <input type="date" id="startDateInput" />
+    </label>
 
-      <div style="display:flex; gap:0.5rem; align-items:center; margin-bottom:0.5rem;">
-        <div style="flex:1">
-          <label>選択中ルーム</label>
-          <input type="text" id="selectedRoomId" disabled />
-        </div>
-        <div style="width:160px;">
-          <label>サムネイル表示</label>
-          <img id="selectedThumbnail" src="/noimage.jpg" class="thumb" alt="thumb" />
-        </div>
-      </div>
+    <label>Open Date：
+      <input type="date" id="openDateInput" />
+    </label>
 
-      <div id="actionArea" style="margin-top:0.6rem; display:none;">
-        <label>ルームタイトル</label>
-        <input type="text" id="editTitle" />
+    <label>End Date：
+      <input type="date" id="endDateInput" />
+    </label>
 
-        <label>startDate（借用開始）</label>
-        <input type="datetime-local" id="startDate">
+    <button id="saveRoomBtn" class="btn">設定を保存</button>
 
-        <label>openDate（公開開始）</label>
-        <input type="datetime-local" id="openDate">
-
-        <label>endDate（公開終了）</label>
-        <input type="datetime-local" id="endDate">
-
-        <div class="controls" style="margin-top:0.6rem;">
-          <button id="saveMetaBtn" class="primary">保存</button>
-          <button id="initRoomBtn" class="danger">ルーム初期化（画像削除）</button>
-          <button id="reloadRoomBtn">再読み込み</button>
-        </div>
-      </div>
-
-      <div style="margin-top:1rem;">
-        <label>操作ログ</label>
-        <div id="logArea" class="log"></div>
-      </div>
-    </main>
+    <h3>初期化</h3>
+    <button id="resetRoomBtn" class="btn danger">このルームを初期化</button>
   </div>
 
-  <script type="module" src="./js/UploadTool/RoomControlTool.js"></script>
+  <script type="module" src="RoomControlTool.js"></script>
 </body>
 </html>
