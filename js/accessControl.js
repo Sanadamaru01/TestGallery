@@ -2,7 +2,15 @@ export function checkAccessAndShowMessage(startDateStr, endDateStr) {
   const now = new Date();
   const start = startDateStr ? new Date(startDateStr) : null;
   const end = endDateStr ? new Date(endDateStr) : null;
-
+  
+  // ★ 両方 null → 非公開にする
+  if (!start && !end) {
+    const msg = document.createElement('div');
+    msg.className = 'message';
+    msg.textContent = 'このギャラリーは現在非公開です。（公開設定がされていません）';
+    document.body.appendChild(msg);
+    return false;
+  }
   const inPeriod =
     (!start || now >= start) &&
     (!end || now <= end);
