@@ -2,20 +2,16 @@ import * as THREE from 'three';
 import { buildRoom } from './roomBuilder.js';
 import { setupCameraControls } from './cameraControls.js';
 import { loadImages } from './imageLoader.js';
-import { createCaptionPanel } from './captionHelper.js'; // 旧版キャプション用
+import { createCaptionPanel } from './captionHelper.js'; // 画像ごとの3Dキャプション生成用
 
 export async function initGallery(imageFiles, config, imageBasePath) {
-  const {
-    wallWidth: WALL_WIDTH,
-    wallHeight: WALL_HEIGHT,
-    fixedLongSide,
-    backgroundColor
-  } = config;
+  const { wallWidth: WALL_WIDTH, wallHeight: WALL_HEIGHT, fixedLongSide, backgroundColor } = config;
 
   const titleBar = document.getElementById('titleBar');
   const HEADER_HEIGHT = titleBar ? parseInt(titleBar.dataset.height || '60', 10) : 60;
   const GALLERY_HEIGHT = WALL_HEIGHT / 2;
 
+  // シーン作成
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(backgroundColor);
   scene.userData.wallWidth = WALL_WIDTH;
@@ -31,45 +27,39 @@ export async function initGallery(imageFiles, config, imageBasePath) {
   camera.position.set(0, GALLERY_HEIGHT, -0.5);
   camera.lookAt(0, GALLERY_HEIGHT, 0);
 
-  // レンダラー設定（最新版の詳細）
+  // レンダラー設定
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, getViewportHeightMinusHeader());
   renderer.colorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.0;
-  console.log('✅ Renderer colorSpace:', renderer.colorSpace);
-  console.log('✅ ToneMapping:', renderer.toneMapping);
-  console.log('✅ ToneMappingExposure:', renderer.toneMappingExposure);
-
   document.body.appendChild(renderer.domElement);
 
   // 部屋とドア生成
   const { floor, door } = await buildRoom(scene, config);
 
-  // ドアクリック処理
+  // ドアクリックでポータル index.html に戻る
   door.userData.onClick = () => {
-    console.log('✅ ドアがクリックされました');
+    console.log('ドアクリック: ポータルへ移動');
     window.location.href = '../../index.html';
   };
-  door.traverse((child) => {
+  door.traverse(child => {
     if (child !== door) child.userData.onClick = door.userData.onClick;
   });
 
-  // 照明
+  // 照明設定
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
   const ambientLight = new THREE.AmbientLight(0x888888, 0.5);
   scene.add(light, light.target, ambientLight);
   const lightOffset = new THREE.Vector3(0, 10, 7.5);
 
   // カメラコントロール
-  const { controls, animateCamera } = setupCameraControls(
-    camera, renderer, GALLERY_HEIGHT, floor, scene
-  );
+  const { controls, animateCamera } = setupCameraControls(camera, renderer, GALLERY_HEIGHT, floor, scene);
 
-  // 画像読み込み・配置（旧版キャプション対応）
+  // 画像読み込み・配置
   const loadedMeshes = await loadImages(scene, imageFiles, WALL_WIDTH, WALL_HEIGHT, fixedLongSide, imageBasePath);
 
-  // キャプション生成（旧版）
+  // 3D キャプション生成（DB から取得した title/caption を使用）
   loadedMeshes.forEach((mesh, idx) => {
     const imgData = imageFiles[idx];
     if (imgData.title && imgData.caption) {
@@ -79,7 +69,7 @@ export async function initGallery(imageFiles, config, imageBasePath) {
     }
   });
 
-  // ビューポート
+  // ビューポート高さ取得
   function getViewportHeight() { return document.documentElement.clientHeight; }
   function getViewportHeightMinusHeader() { return getViewportHeight() - HEADER_HEIGHT; }
 
@@ -101,7 +91,7 @@ export async function initGallery(imageFiles, config, imageBasePath) {
     controls.update();
     animateCamera();
 
-    // キャプション距離制御（旧版）
+    // キャプション距離制御
     loadedMeshes.forEach(mesh => {
       if (mesh.userData.captionPanel) {
         const distance = camera.position.distanceTo(mesh.position);
@@ -119,7 +109,7 @@ export async function initGallery(imageFiles, config, imageBasePath) {
   }
 
   // クリック処理
-  window.addEventListener('click', (event) => {
+  window.addEventListener('click', event => {
     const mouse = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,
       -(event.clientY / getViewportHeightMinusHeader()) * 2 + 1
