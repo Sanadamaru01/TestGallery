@@ -29,7 +29,7 @@ const db = getFirestore(app);
 // -------------------------------------
 function getCurrentRoomId() {
   const params = new URLSearchParams(location.search);
-  return params.get('room');
+  return params.get('roomId');
 }
 
 // -------------------------------------
