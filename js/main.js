@@ -3,10 +3,10 @@ import { checkAccessAndShowMessage } from './accessControl.js';
 import { initGallery } from './gallery.js';
 import { updateRoomLinksUI } from './roomLinks.js';
 
-// URL から roomId を取得（?room=roomX の形式）
+// URL から roomId を取得（?roomId=XXX の形式に変更）
 function getCurrentRoomId() {
   const params = new URLSearchParams(location.search);
-  return params.get('room');
+  return params.get('roomId'); // ← 修正
 }
 
 const roomId = getCurrentRoomId();
