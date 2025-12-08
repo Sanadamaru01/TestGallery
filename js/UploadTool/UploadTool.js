@@ -46,7 +46,8 @@ async function onRoomChange(){
   const thumbSnap = await getDocs(collection(db, `rooms/${roomId}/images`));
   let thumbURL = "";
   thumbSnap.forEach(d => { if(d.data().file==="thumbnail.webp") thumbURL=d.data().downloadURL; });
-  document.getElementById("thumbnailImg").src = thumbURL || "";
+
+  document.getElementById("thumbnailImg").src = thumbURL || "./assets/noimage.webp";
 }
 
 // 通常アップロード
