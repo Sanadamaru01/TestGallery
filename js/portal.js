@@ -85,7 +85,7 @@ async function createRoomCard(roomId, config, isOpen) {
   // --- <a> リンク --- 
   // 変更：room.html + URL パラメータ方式に変更
   const link = document.createElement('a');
-  link.href = `./rooms/room.html?roomId=${roomId}`;
+  link.href = `./room.html?roomId=${roomId}`;
   if (!isOpen) link.classList.add('closed');
 
   // --- サムネイル画像（Storage 固定パス方式） ---
