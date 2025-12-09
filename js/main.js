@@ -57,7 +57,8 @@ export async function initGalleryFromRoomId(roomId) {
     console.log("[DEBUG] room title set:", title);
 
     console.log("[DEBUG] initializing gallery...");
-    galleryModule.initGallery(images, config, `./rooms/${roomId}/images/`, storage);
+    // ← ここを改修（imageBasePath・storage 削除）
+    galleryModule.initGallery(images, config);
 
     console.log("[DEBUG] setting up room links...");
     await roomLinksModule.setupRoomLinks();
