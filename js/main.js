@@ -36,3 +36,4 @@ if (!roomId) {
       msg.textContent = 'ギャラリー情報の読み込みに失敗しました。';
       document.body.appendChild(msg);
     });
+}
