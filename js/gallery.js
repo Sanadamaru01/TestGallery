@@ -2,10 +2,15 @@ import * as THREE from 'three';
 import { buildRoom } from './roomBuilder.js';
 import { setupCameraControls } from './cameraControls.js';
 import { loadImages } from './imageLoader.js';
-import { createCaptionPanel } from './captionHelper.js'; // 画像ごとの3Dキャプション生成用
+import { createCaptionPanel } from './captionHelper.js';
 
-// imageBasePath を削除
-export async function initGallery(imageFiles, config) {
+/**
+ * ギャラリー初期化
+ * @param {string} roomId - 部屋ID（これで画像パスを生成）
+ * @param {Array} imageFiles - Firestoreから取得した画像情報配列
+ * @param {Object} config - 部屋設定（wallWidth, wallHeight, fixedLongSide, backgroundColor など）
+ */
+export async function initGallery(roomId, imageFiles, config) {
   const { wallWidth: WALL_WIDTH, wallHeight: WALL_HEIGHT, fixedLongSide, backgroundColor } = config;
 
   const titleBar = document.getElementById('titleBar');
@@ -57,16 +62,19 @@ export async function initGallery(imageFiles, config) {
   // カメラコントロール
   const { controls, animateCamera } = setupCameraControls(camera, renderer, GALLERY_HEIGHT, floor, scene);
 
-  // 画像読み込み・配置（imageBasePath を削除）
+  // 画像読み込み・配置
+  // main.jsから渡された roomId で imageBasePath を生成
+  const imageBasePath = `./rooms/${roomId}/images/`;
   const loadedMeshes = await loadImages(
     scene,
     imageFiles,
     WALL_WIDTH,
     WALL_HEIGHT,
-    fixedLongSide
+    fixedLongSide,
+    imageBasePath
   );
 
-  // 3D キャプション生成（DB から取得した title/caption を使用）
+  // 3D キャプション生成
   loadedMeshes.forEach((mesh, idx) => {
     const imgData = imageFiles[idx];
     if (imgData.title && imgData.caption) {
