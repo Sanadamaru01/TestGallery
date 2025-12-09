@@ -94,9 +94,8 @@ export async function initGallery(roomId, imageFiles, config) {
 
     // 全部空ならキャプションパネルを生成しない
     if (title || caption || author) {
-      const content = [title, caption, author].filter(s => s).join('\n');
       const aspect = mesh.geometry.parameters.width / mesh.geometry.parameters.height;
-      mesh.userData.captionPanel = createCaptionPanel(mesh, content, '', aspect);
+      mesh.userData.captionPanel = createCaptionPanel(mesh, title, author,caption, aspect);
     }
   });
 
