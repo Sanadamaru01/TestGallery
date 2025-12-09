@@ -80,7 +80,8 @@ export async function initGallery(roomId, imageFiles, config) {
     imagesWithURL,
     WALL_WIDTH,
     WALL_HEIGHT,
-    fixedLongSide
+    fixedLongSide,
+    roomId
   );
 
   // キャプション作成
