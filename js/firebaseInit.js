@@ -12,7 +12,7 @@ const firebaseConfig = {
 };
 
 // ログ出力で確認
-console.log("[DEBUG] firebaseInit loaded, config:", firebaseConfig);
+//console.log("[DEBUG] firebaseInit loaded, config:", firebaseConfig);
 
 // Firebase 初期化
 export const app = initializeApp(firebaseConfig);
@@ -21,4 +21,4 @@ console.log("[DEBUG] Firebase app initialized:", app);
 // Firestore / Storage も同時にエクスポート
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-console.log("[DEBUG] Firestore & Storage initialized");
+//console.log("[DEBUG] Firestore & Storage initialized");
