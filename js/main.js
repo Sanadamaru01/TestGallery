@@ -1,18 +1,26 @@
 // main.js（Firestore + Storage 対応版・firebaseInit.js 統一・ログ追加版） 
 
-import { loadRoomDataFromFirestore } from './RoomConfigLoaderFirestore.js';
-import { checkAccessAndShowMessage } from './accessControl.js';
-import { initGallery } from './gallery.js';
-import { setupRoomLinks } from './roomLinks.js'; // 修正版に合わせて変更
+console.log("[DEBUG] main.js load start");
 
-// firebaseInit.js から統一して import
+// まず firebaseInit.js 以外のモジュールは先にインポート
+import * as roomLoader from './RoomConfigLoaderFirestore.js';
+console.log("[DEBUG] RoomConfigLoaderFirestore imported");
+
+import * as accessControl from './accessControl.js';
+console.log("[DEBUG] accessControl imported");
+
+import * as galleryModule from './gallery.js';
+console.log("[DEBUG] gallery imported");
+
+import * as roomLinksModule from './roomLinks.js';
+console.log("[DEBUG] roomLinks imported");
+
+// firebaseInit.js を最後にインポート（ここで Firebase が初期化される）
 import { db, storage } from './firebaseInit.js';
-
-console.log("[DEBUG] main.js loaded");
+console.log("[DEBUG] firebaseInit imported, db & storage ready");
 
 /**
  * 指定した roomId でギャラリーを初期化
- * HTML 側から呼び出す用
  */
 export async function initGalleryFromRoomId(roomId) {
   console.log("[DEBUG] initGalleryFromRoomId called with roomId:", roomId);
@@ -28,27 +36,23 @@ export async function initGalleryFromRoomId(roomId) {
 
   try {
     console.log("[DEBUG] loading room data from Firestore...");
-    const { config, images, raw } = await loadRoomDataFromFirestore(roomId, db, storage);
+    const { config, images, raw } = await roomLoader.loadRoomDataFromFirestore(roomId, db, storage);
     console.log("[DEBUG] room data loaded:", { config, images, raw });
 
-    // 開始・終了日時チェック
-    const allowed = checkAccessAndShowMessage(raw.startDate, raw.endDate);
+    const allowed = accessControl.checkAccessAndShowMessage(raw.startDate, raw.endDate);
     console.log("[DEBUG] access check result:", allowed);
     if (!allowed) return;
 
-    // タイトル表示
     const title = raw.roomTitle || 'Untitled Room';
     document.getElementById('titleText').textContent = title;
     document.title = title;
     console.log("[DEBUG] room title set:", title);
 
-    // 画像パスは各ルーム直下
     console.log("[DEBUG] initializing gallery...");
-    initGallery(images, config, `./rooms/${roomId}/images/`, storage);
+    galleryModule.initGallery(images, config, `./rooms/${roomId}/images/`, storage);
 
-    // 前後リンクを更新（roomLinks.js 修正版を使用）
     console.log("[DEBUG] setting up room links...");
-    await setupRoomLinks();
+    await roomLinksModule.setupRoomLinks();
     console.log("[DEBUG] setupRoomLinks finished");
 
   } catch (err) {
