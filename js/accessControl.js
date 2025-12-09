@@ -1,34 +1,36 @@
-// -----------------------------------------------------
-// accessControl.js
-// Firestore の Timestamp → Date は main.js 側で変換済み前提
-// Firestore から来る値は Date なので、new Date() しない
-// -----------------------------------------------------
-
-console.log("[DEBUG] accessControl loaded");
-
-/**
- * startDate / endDate でアクセス制御を行う
- * - 両方 null → 非公開（警告表示）
- * - now が期間内 → true
- * - 期間外 → false（理由のメッセージを表示）
- */
 export function checkAccessAndShowMessage(startDate, endDate) {
   const now = new Date();
   console.log("[DEBUG] checkAccess inputs:", { startDate, endDate, now });
 
-  // --- Firestore Timestamp → Date 変換済みで渡される想定 ---
-  // Date でなければ null 扱い
-  const start = startDate instanceof Date ? startDate : null;
-  const end = endDate instanceof Date ? endDate : null;
+  function toValidDate(value) {
+    if (!value) return null;
+
+    // Firestore Timestamp
+    if (value.toDate instanceof Function) {
+      const d = value.toDate();
+      return isNaN(d) ? null : d;
+    }
+
+    // 既に Date の場合
+    if (value instanceof Date) {
+      return isNaN(value) ? null : value;
+    }
+
+    // string など
+    const d = new Date(value);
+    return isNaN(d) ? null : d;
+  }
+
+  const start = toValidDate(startDate);
+  const end   = toValidDate(endDate);
 
   console.log("[DEBUG] normalized start/end:", {
-    start,
-    end,
-    startValid: start instanceof Date,
-    endValid: end instanceof Date
+    start, end,
+    startValid: !!start,
+    endValid: !!end
   });
 
-  // ★ 両方 null → 非公開
+  // 両方 null → 非公開
   if (!start && !end) {
     const msg = document.createElement('div');
     msg.className = 'message';
@@ -42,29 +44,23 @@ export function checkAccessAndShowMessage(startDate, endDate) {
     (!start || now >= start) &&
     (!end || now <= end);
 
-  console.log("[DEBUG] inPeriod =", inPeriod);
-
-  // 公開
   if (inPeriod) {
-    console.log("[DEBUG] result = true (inPeriod)");
+    console.log("[DEBUG] result = true (in period)");
     return true;
   }
 
-  // 非公開メッセージ生成
   const msg = document.createElement('div');
   msg.className = 'message';
 
   if (start && now < start) {
     msg.textContent = 'このギャラリーはまだ公開されていません。';
-    console.log("[DEBUG] reason: before start");
   } else if (end && now > end) {
     msg.textContent = 'このギャラリーの展示期間は終了しました。';
-    console.log("[DEBUG] reason: after end");
   } else {
     msg.textContent = '現在このギャラリーは非公開です。';
-    console.log("[DEBUG] reason: other");
   }
 
   document.body.appendChild(msg);
+  console.log("[DEBUG] result = false (out of period)");
   return false;
 }
