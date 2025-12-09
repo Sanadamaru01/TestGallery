@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { app } from '../firebaseInit.js';
 
 export async function buildRoom(scene, config) {
   const {
@@ -9,39 +11,46 @@ export async function buildRoom(scene, config) {
   } = config;
 
   const textureLoader = new THREE.TextureLoader();
+  const storage = getStorage(app);
 
-  // マテリアル共通関数
-  const makeMaterial = (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
+  // --- async マテリアル生成 ---
+  const makeMaterial = async (texPath, fallbackColor, repeatX = 1, repeatY = 1) => {
     if (texPath) {
-      const tex = textureLoader.load(texPath, (loadedTex) => {
-        console.log(`✅ Texture loaded from: ${texPath}`);
-        console.log('→ colorSpace:', loadedTex.colorSpace);
-        console.log('→ minFilter:', loadedTex.minFilter);
-        console.log('→ magFilter:', loadedTex.magFilter);
-        console.log('→ mipmaps:', loadedTex.generateMipmaps);
-      });
+      try {
+        let url = texPath;
+        if (texPath.startsWith('gs://') || texPath.startsWith('rooms/') || texPath.startsWith('share/')) {
+          const ref = storageRef(storage, texPath);
+          url = await getDownloadURL(ref);
+        }
 
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-      tex.repeat.set(repeatX, repeatY);
-      tex.generateMipmaps = false;
-      tex.minFilter = THREE.LinearFilter;
-  
-      return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+        const tex = await new Promise((resolve, reject) => {
+          textureLoader.load(url, resolve, undefined, reject);
+        });
+
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(repeatX, repeatY);
+        tex.generateMipmaps = false;
+        tex.minFilter = THREE.LinearFilter;
+
+        return new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+      } catch (err) {
+        console.warn(`[WARN] Texture load failed: ${texPath}`, err);
+      }
     }
     return new THREE.MeshBasicMaterial({ color: new THREE.Color(fallbackColor), side: THREE.DoubleSide });
   };
 
-  const wallMat = makeMaterial(texturePaths?.wall, backgroundColor, 2, 1);
-  const floorMat = makeMaterial(texturePaths?.floor, backgroundColor, 1, 1);
-  const ceilMat  = makeMaterial(texturePaths?.ceiling, backgroundColor, 2, 2);
+  // --- 壁・床・天井マテリアル ---
+  const wallMat = await makeMaterial(texturePaths?.wall, backgroundColor, 2, 1);
+  const floorMat = await makeMaterial(texturePaths?.floor, backgroundColor, 1, 1);
+  const ceilMat  = await makeMaterial(texturePaths?.ceiling, backgroundColor, 2, 2);
 
-  // --- 床 ---
+  // --- 床・天井 ---
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), floorMat);
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
 
-  // --- 天井 ---
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(WALL_WIDTH, WALL_WIDTH), ceilMat);
   ceiling.rotation.x = Math.PI / 2;
   ceiling.position.y = WALL_HEIGHT;
@@ -56,10 +65,10 @@ export async function buildRoom(scene, config) {
     wall.rotation.y = ry;
     scene.add(wall);
   };
-  addWall(0, h, -w, 0);           // back
-  addWall(0, h, w, Math.PI);      // front
-  addWall(-w, h, 0, Math.PI / 2); // right
-  addWall(w, h, 0, -Math.PI / 2); // left
+  addWall(0, h, -w, 0);
+  addWall(0, h, w, Math.PI);
+  addWall(-w, h, 0, Math.PI / 2);
+  addWall(w, h, 0, -Math.PI / 2);
 
   // --- ドア ---
   const doorWidth = 2;
@@ -69,7 +78,8 @@ export async function buildRoom(scene, config) {
   const doorZ = -w + doorDepth / 2 + 0.01;
   const doorGeo = new THREE.BoxGeometry(doorWidth, doorHeight, doorDepth);
 
-  const createDoor = (material) => {
+  // --- createDoor を async 化 ---
+  const createDoor = async (material) => {
     const door = new THREE.Mesh(doorGeo, material);
     door.name = 'Door';
     door.position.set(0, doorY, doorZ);
@@ -88,7 +98,7 @@ export async function buildRoom(scene, config) {
     edges.rotation.copy(door.rotation);
     scene.add(edges);
 
-    // --- ドアノブ（筒状） ---
+    // ドアノブ
     const knobGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.25, 32);
     const knobMat = new THREE.MeshStandardMaterial({ color: 0x5C3317 });
     const knob = new THREE.Mesh(knobGeo, knobMat);
@@ -96,59 +106,45 @@ export async function buildRoom(scene, config) {
     knob.position.set(-doorWidth / 2 + 0.25, doorY, doorZ + doorDepth / 2 + 0.06);
     scene.add(knob);
 
-    // --- ドア装飾バンド（透明な枠線） ---
-function addDecorativeBand(yCenter) {
-  const bandWidth = doorWidth - 0.4;  // 左右に余白0.2ずつ
-  const bandHeight = 1;
+    // 装飾バンド
+    function addDecorativeBand(yCenter) {
+      const bandWidth = doorWidth - 0.4;
+      const bandHeight = 1;
+      const shape = new THREE.Shape();
+      shape.moveTo(-bandWidth / 2, -bandHeight / 2);
+      shape.lineTo(bandWidth / 2, -bandHeight / 2);
+      shape.lineTo(bandWidth / 2, bandHeight / 2);
+      shape.lineTo(-bandWidth / 2, bandHeight / 2);
+      shape.lineTo(-bandWidth / 2, -bandHeight / 2);
 
-  const shape = new THREE.Shape();
-  shape.moveTo(-bandWidth / 2, -bandHeight / 2);
-  shape.lineTo( bandWidth / 2, -bandHeight / 2);
-  shape.lineTo( bandWidth / 2,  bandHeight / 2);
-  shape.lineTo(-bandWidth / 2,  bandHeight / 2);
-  shape.lineTo(-bandWidth / 2, -bandHeight / 2);
+      const geometry = new THREE.BufferGeometry().setFromPoints(shape.getPoints());
+      const material = new THREE.LineBasicMaterial({ color: 0x3B2410 });
+      const band = new THREE.LineLoop(geometry, material);
+      band.position.set(0, yCenter, doorDepth / 2 + 0.011);
+      door.add(band);
+    }
+    addDecorativeBand(doorHeight / 2 - 0.75);
+    addDecorativeBand(-doorHeight / 2 + 0.75);
 
-  const geometry = new THREE.BufferGeometry().setFromPoints(shape.getPoints());
-  const material = new THREE.LineBasicMaterial({ color: 0x3B2410 });
-  const band = new THREE.LineLoop(geometry, material);
-
-  band.position.set(0, yCenter, doorDepth / 2 + 0.011); // ドア面のちょっと前
-  door.add(band);
-}
-
-// --- 上バンド（ドア上端から少し下）
-addDecorativeBand(doorHeight / 2 - 0.75);
-
-// --- 下バンド（ドア下端から少し上）
-addDecorativeBand(-doorHeight / 2 + 0.75);
-
-    // --- EXIT 看板（CanvasTexture） ---
+    // EXIT 看板
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 128;
+    canvas.width = 256; canvas.height = 128;
     const ctx = canvas.getContext('2d');
-    
-    // 背景を透明にしておく（デフォルト）
-    // 文字色をこげ茶に変更
-    ctx.fillStyle = '#5C3317';  // こげ茶色
+    ctx.fillStyle = '#5C3317';
     ctx.font = 'bold 64px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('EXIT', canvas.width / 2, canvas.height / 2);
-    
     const textTex = new THREE.CanvasTexture(canvas);
     const textMat = new THREE.MeshBasicMaterial({ map: textTex, transparent: true });
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.5), textMat);
-    
-    // ドア高さの3/4（= 上から1/4下がった位置）にセット
     sign.position.set(0, doorHeight * 0.25, doorDepth / 2 + 0.012);
     door.add(sign);
-
 
     return door;
   };
 
-  let door;
+  // --- ドアマテリアル ---
   const fallbackMat = new THREE.MeshStandardMaterial({
     color: 0xff0000,
     opacity: 0.7,
@@ -156,20 +152,27 @@ addDecorativeBand(-doorHeight / 2 + 0.75);
     side: THREE.DoubleSide
   });
 
+  let door;
   if (texturePaths?.Door) {
     try {
+      let url = texturePaths.Door;
+      if (url.startsWith('gs://') || url.startsWith('rooms/') || url.startsWith('share/')) {
+        const ref = storageRef(storage, url);
+        url = await getDownloadURL(ref);
+      }
+
       const tex = await new Promise((resolve, reject) => {
-        textureLoader.load(texturePaths.Door, resolve, undefined, reject);
+        textureLoader.load(url, resolve, undefined, reject);
       });
       tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
       tex.colorSpace = THREE.SRGBColorSpace;
       const mat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide });
-      door = createDoor(mat);
+      door = await createDoor(mat);
     } catch {
-      door = createDoor(fallbackMat);
+      door = await createDoor(fallbackMat);
     }
   } else {
-    door = createDoor(fallbackMat);
+    door = await createDoor(fallbackMat);
   }
 
   return { floor, door };
