@@ -4,7 +4,8 @@ import { setupCameraControls } from './cameraControls.js';
 import { loadImages } from './imageLoader.js';
 import { createCaptionPanel } from './captionHelper.js'; // 画像ごとの3Dキャプション生成用
 
-export async function initGallery(imageFiles, config, imageBasePath) {
+// imageBasePath を削除
+export async function initGallery(imageFiles, config) {
   const { wallWidth: WALL_WIDTH, wallHeight: WALL_HEIGHT, fixedLongSide, backgroundColor } = config;
 
   const titleBar = document.getElementById('titleBar');
@@ -56,8 +57,14 @@ export async function initGallery(imageFiles, config, imageBasePath) {
   // カメラコントロール
   const { controls, animateCamera } = setupCameraControls(camera, renderer, GALLERY_HEIGHT, floor, scene);
 
-  // 画像読み込み・配置
-  const loadedMeshes = await loadImages(scene, imageFiles, WALL_WIDTH, WALL_HEIGHT, fixedLongSide, imageBasePath);
+  // 画像読み込み・配置（imageBasePath を削除）
+  const loadedMeshes = await loadImages(
+    scene,
+    imageFiles,
+    WALL_WIDTH,
+    WALL_HEIGHT,
+    fixedLongSide
+  );
 
   // 3D キャプション生成（DB から取得した title/caption を使用）
   loadedMeshes.forEach((mesh, idx) => {
@@ -119,7 +126,9 @@ export async function initGallery(imageFiles, config, imageBasePath) {
     const intersects = raycaster.intersectObjects(scene.userData.clickablePanels || [], true);
     if (intersects.length > 0) {
       const clicked = intersects[0].object;
-      if (clicked.userData && typeof clicked.userData.onClick === 'function') clicked.userData.onClick();
+      if (clicked.userData && typeof clicked.userData.onClick === 'function') {
+        clicked.userData.onClick();
+      }
     }
   });
 
