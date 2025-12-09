@@ -44,7 +44,7 @@ export async function initGallery(roomId, imageFiles, config) {
   const { floor, door } = await buildRoom(scene, config);
 
   // ドアクリックでポータル index.html に戻る
-  door.userData.onClick = () => window.location.href = '../../index.html';
+  door.userData.onClick = () => window.location.href = './index.html';
   door.traverse(child => { if (child !== door) child.userData.onClick = door.userData.onClick; });
 
   // ライト
