@@ -1,14 +1,9 @@
-// =====================================
-// roomLinks.js (Firestore版・サーキュラーリンク / room.html対応)
-// firebaseInit.js 統一版
-// =====================================
+// roomLinks.js（Firestore版・firebaseInit.js 統一版 / room.html対応）
 
-import { db } from './firebaseInit.js';  // Firebase 初期化済み db を統一
-// import { app } from './firebaseInit.js'; // app が必要ならこちらも
+import { db } from './firebaseInit.js';  // 初期化済み Firestore
 
 // -------------------------------------
 // 現在の roomId を URL クエリから取得
-// 例: room.html?roomId=room3 → "room3"
 // -------------------------------------
 function getCurrentRoomId() {
   const params = new URLSearchParams(location.search);
@@ -33,11 +28,11 @@ export async function setupRoomLinks() {
   }
 
   try {
+    // Firestore 関数を動的 import（CDN対応）
     const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-    const snapshot = await getDocs(collection(db, "rooms"));
 
-    const roomIds = [];
-    snapshot.forEach(doc => roomIds.push(doc.id));
+    const snapshot = await getDocs(collection(db, "rooms"));
+    const roomIds = snapshot.docs.map(doc => doc.id);
 
     // room1, room2,... を数値で正しくソート
     roomIds.sort((a, b) => parseInt(a.replace("room","")) - parseInt(b.replace("room","")));
@@ -51,7 +46,7 @@ export async function setupRoomLinks() {
     const prevId = roomIds[(currentIndex - 1 + roomIds.length) % roomIds.length];
     const nextId = roomIds[(currentIndex + 1) % roomIds.length];
 
-    // room.html 用リンクに変更
+    // room.html 用リンクに設定
     prevLink.href = `room.html?roomId=${prevId}`;
     nextLink.href = `room.html?roomId=${nextId}`;
 
@@ -70,5 +65,5 @@ export async function setupRoomLinks() {
   }
 }
 
-// -------------------------------------
+// 初期化
 setupRoomLinks();
