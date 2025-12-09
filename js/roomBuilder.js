@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { app } from '../firebaseInit.js';
+import { app } from './firebaseInit.js';
 
 export async function buildRoom(scene, config) {
   const {
