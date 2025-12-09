@@ -1,14 +1,20 @@
 // RoomConfigLoaderFirestore.js
-import { db } from './firebase.js';
-import { doc, collection, getDoc, getDocs } from 'firebase/firestore';
+import {
+  doc,
+  collection,
+  getDoc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /**
  * Firestore から部屋データ（設定 + 画像）を取得
  */
-export async function loadRoomDataFromFirestore(roomId) {
-  const roomRef = doc(db, 'rooms', roomId);
+export async function loadRoomDataFromFirestore(roomId, db) {
+  const roomRef = doc(db, "rooms", roomId);
   const roomSnap = await getDoc(roomRef);
-  if (!roomSnap.exists()) throw new Error(`Room not found: ${roomId}`);
+  if (!roomSnap.exists()) {
+    throw new Error(`Room not found: ${roomId}`);
+  }
   const roomData = roomSnap.data();
 
   const config = {
@@ -20,7 +26,7 @@ export async function loadRoomDataFromFirestore(roomId) {
     texturePaths: roomData.texturePaths
   };
 
-  const imagesRef = collection(db, 'rooms', roomId, 'images');
+  const imagesRef = collection(db, "rooms", roomId, "images");
   const imagesSnap = await getDocs(imagesRef);
   const images = imagesSnap.docs.map(docSnap => {
     const d = docSnap.data();
