@@ -1,12 +1,15 @@
-// main.js（Firestore + Storage 対応版・firebaseInit.js 統一・ログ追加版）
+// main.js（Firestore対応版・firebaseInit.js統一・ログ追加版）
 
+// --------------------
+// ログ出力
+// --------------------
 console.log("[DEBUG] main.js load start");
 
 // ---------------------------------------------------------
 // ① firebaseInit.js を最初に読み込む（UploadTool と同じ方式）
 // ---------------------------------------------------------
-import { db, storage } from './firebaseInit.js';
-console.log("[DEBUG] firebaseInit imported, db & storage ready");
+import { db } from './firebaseInit.js'; // storage は main.js では不要
+console.log("[DEBUG] firebaseInit imported, db ready");
 
 // ---------------------------------------------------------
 // ② Firestore 使用モジュールを後から読み込む
@@ -22,7 +25,6 @@ console.log("[DEBUG] gallery imported");
 
 import * as roomLinksModule from './roomLinks.js';
 console.log("[DEBUG] roomLinks imported");
-
 
 // ---------------------------------------------------------
 // ギャラリー初期化メイン処理
@@ -44,7 +46,7 @@ export async function initGalleryFromRoomId(roomId) {
 
   try {
     console.log("[DEBUG] loading room data from Firestore...");
-    const { config, images, raw } = await roomLoader.loadRoomDataFromFirestore(roomId, db, storage);
+    const { config, images, raw } = await roomLoader.loadRoomDataFromFirestore(roomId, db);
     console.log("[DEBUG] room data loaded:", { config, images, raw });
 
     const allowed = accessControl.checkAccessAndShowMessage(raw.startDate, raw.endDate);
@@ -57,8 +59,8 @@ export async function initGalleryFromRoomId(roomId) {
     console.log("[DEBUG] room title set:", title);
 
     console.log("[DEBUG] initializing gallery...");
-    // ← ここを改修（imageBasePath・storage 削除）
-    galleryModule.initGallery(images, config);
+    // 改修：roomId と images のみ渡す
+    galleryModule.initGallery(roomId, images, config);
 
     console.log("[DEBUG] setting up room links...");
     await roomLinksModule.setupRoomLinks();
@@ -72,7 +74,6 @@ export async function initGalleryFromRoomId(roomId) {
     document.body.appendChild(msg);
   }
 }
-
 
 // ========================================================
 // URL パラメータから roomId を取得して init を実行
