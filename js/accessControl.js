@@ -1,6 +1,6 @@
 export function checkAccessAndShowMessage(startDate, endDate) {
   const now = new Date();
-  console.log("[DEBUG] checkAccess inputs:", { startDate, endDate, now });
+  //console.log("[DEBUG] checkAccess inputs:", { startDate, endDate, now });
 
   function toValidDate(value) {
     if (!value) return null;
@@ -24,11 +24,11 @@ export function checkAccessAndShowMessage(startDate, endDate) {
   const start = toValidDate(startDate);
   const end   = toValidDate(endDate);
 
-  console.log("[DEBUG] normalized start/end:", {
-    start, end,
-    startValid: !!start,
-    endValid: !!end
-  });
+  //console.log("[DEBUG] normalized start/end:", {
+  //  start, end,
+  //  startValid: !!start,
+  //  endValid: !!end
+  //});
 
   // 両方 null → 非公開
   if (!start && !end) {
@@ -45,7 +45,7 @@ export function checkAccessAndShowMessage(startDate, endDate) {
     (!end || now <= end);
 
   if (inPeriod) {
-    console.log("[DEBUG] result = true (in period)");
+    //console.log("[DEBUG] result = true (in period)");
     return true;
   }
 
@@ -61,6 +61,6 @@ export function checkAccessAndShowMessage(startDate, endDate) {
   }
 
   document.body.appendChild(msg);
-  console.log("[DEBUG] result = false (out of period)");
+  //console.log("[DEBUG] result = false (out of period)");
   return false;
 }
