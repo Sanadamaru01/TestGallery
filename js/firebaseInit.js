@@ -16,7 +16,7 @@ const firebaseConfig = {
 
 // Firebase 初期化
 export const app = initializeApp(firebaseConfig);
-console.log("[DEBUG] Firebase app initialized:", app);
+//console.log("[DEBUG] Firebase app initialized:", app);
 
 // Firestore / Storage も同時にエクスポート
 export const db = getFirestore(app);
