@@ -1,6 +1,9 @@
+// =====================================
 // roomLinks.js（Firestore版・firebaseInit.js 統一版 / room.html対応）
+// =====================================
 
 import { db } from './firebaseInit.js';  // 初期化済み Firestore
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // -------------------------------------
 // 現在の roomId を URL クエリから取得
@@ -28,9 +31,7 @@ export async function setupRoomLinks() {
   }
 
   try {
-    // Firestore 関数を動的 import（CDN対応）
-    const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-
+    // Firestore からルーム一覧を取得
     const snapshot = await getDocs(collection(db, "rooms"));
     const roomIds = snapshot.docs.map(doc => doc.id);
 
@@ -43,6 +44,7 @@ export async function setupRoomLinks() {
       return;
     }
 
+    // サーキュラーリンク
     const prevId = roomIds[(currentIndex - 1 + roomIds.length) % roomIds.length];
     const nextId = roomIds[(currentIndex + 1) % roomIds.length];
 
@@ -65,5 +67,4 @@ export async function setupRoomLinks() {
   }
 }
 
-// 初期化
-setupRoomLinks();
+// ⚠️ 注意：setupRoomLinks() の自動実行は行わず、main.js から呼び出す
