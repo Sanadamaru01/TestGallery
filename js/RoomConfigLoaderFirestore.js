@@ -10,7 +10,7 @@ import {
  * Firestore から部屋データ（設定 + 画像）を取得
  */
 export async function loadRoomDataFromFirestore(roomId, db) {
-  console.log("[DEBUG] loadRoomDataFromFirestore start:", roomId);
+  //console.log("[DEBUG] loadRoomDataFromFirestore start:", roomId);
 
   // rooms/{roomId} ドキュメント取得
   const roomRef = doc(db, "rooms", roomId);
@@ -20,7 +20,7 @@ export async function loadRoomDataFromFirestore(roomId, db) {
   }
 
   const roomData = roomSnap.data();
-  console.log("[DEBUG] room document:", roomData);
+  //console.log("[DEBUG] room document:", roomData);
 
   // Firestore Timestamp → JS Date に変換
   const startDate = roomData.startDate ? roomData.startDate.toDate() : null;
@@ -40,7 +40,7 @@ export async function loadRoomDataFromFirestore(roomId, db) {
     endDate
   };
 
-  console.log("[DEBUG] config object:", config);
+  //console.log("[DEBUG] config object:", config);
 
   // 画像サブコレクション取得
   const imagesRef = collection(db, "rooms", roomId, "images");
@@ -58,7 +58,7 @@ export async function loadRoomDataFromFirestore(roomId, db) {
     };
   });
 
-  console.log("[DEBUG] loaded images:", images.length);
+  //console.log("[DEBUG] loaded images:", images.length);
 
   return { config, images, raw: roomData };
 }
