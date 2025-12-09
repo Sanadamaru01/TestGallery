@@ -1,23 +1,10 @@
 // =====================================
 // roomLinks.js (Firestore版・サーキュラーリンク / room.html対応)
+// firebaseInit.js 統一版
 // =====================================
 
-// Firebase CDN から import（UploadTool.js と同じバージョンで統一）
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// Firebase 初期化（main.js と同じ app を使う場合は import { app } from './firebaseInit.js'; に置き換え）
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "gallery-us-ebe6e.firebaseapp.com",
-  projectId: "gallery-us-ebe6e",
-  storageBucket: "gallery-us-ebe6e.appspot.com",
-  messagingSenderId: "748123",
-  appId: "1:748123:web:xxxx"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+import { db } from './firebaseInit.js';  // Firebase 初期化済み db を統一
+// import { app } from './firebaseInit.js'; // app が必要ならこちらも
 
 // -------------------------------------
 // 現在の roomId を URL クエリから取得
@@ -46,7 +33,9 @@ export async function setupRoomLinks() {
   }
 
   try {
+    const { getDocs, collection } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     const snapshot = await getDocs(collection(db, "rooms"));
+
     const roomIds = [];
     snapshot.forEach(doc => roomIds.push(doc.id));
 
