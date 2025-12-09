@@ -17,30 +17,35 @@ function getCurrentRoomId() {
 // 前後リンクを設定（サーキュラーリンク）
 // -------------------------------------
 export async function setupRoomLinks() {
+  console.log("[roomLinks] setupRoomLinks 開始");
+
   const currentRoomId = getCurrentRoomId();
   if (!currentRoomId) {
-    console.warn("❌ roomLinks.js: 現在の roomId を URL から取得できませんでした");
+    console.warn("[roomLinks] ❌ URL から roomId を取得できません");
     return;
   }
+  console.log("[roomLinks] 現在の roomId:", currentRoomId);
 
   const prevLink = document.getElementById("prevRoom");
   const nextLink = document.getElementById("nextRoom");
   if (!prevLink || !nextLink) {
-    console.warn("❌ prevRoom / nextRoom が HTML にありません");
+    console.warn("[roomLinks] ❌ prevRoom / nextRoom が HTML に存在しません");
     return;
   }
 
   try {
-    // Firestore からルーム一覧を取得
+    console.log("[roomLinks] Firestore から rooms コレクションを取得中...");
     const snapshot = await getDocs(collection(db, "rooms"));
     const roomIds = snapshot.docs.map(doc => doc.id);
+    console.log("[roomLinks] 取得した roomIds:", roomIds);
 
     // room1, room2,... を数値で正しくソート
     roomIds.sort((a, b) => parseInt(a.replace("room","")) - parseInt(b.replace("room","")));
+    console.log("[roomLinks] ソート後 roomIds:", roomIds);
 
     const currentIndex = roomIds.indexOf(currentRoomId);
     if (currentIndex === -1) {
-      console.warn("❌ Firestore 内に現在の roomId が存在しません:", currentRoomId);
+      console.warn("[roomLinks] ❌ Firestore 内に現在の roomId が存在しません:", currentRoomId);
       return;
     }
 
@@ -57,13 +62,14 @@ export async function setupRoomLinks() {
     nextLink.style.opacity = "1";
     nextLink.style.pointerEvents = "auto";
 
-    console.log("✅ roomLinks.js: 前後リンクを更新しました（サーキュラー）", {
-      prev: prevLink.href,
-      next: nextLink.href
+    console.log("[roomLinks] ✅ 前後リンクを更新しました（サーキュラー）", {
+      current: currentRoomId,
+      prev: prevId,
+      next: nextId
     });
 
   } catch (err) {
-    console.error("❌ Firestore ルーム取得エラー:", err);
+    console.error("[roomLinks] ❌ Firestore ルーム取得エラー:", err);
   }
 }
 
