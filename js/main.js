@@ -1,8 +1,16 @@
-// main.js（Firestore + Storage 対応版・firebaseInit.js 統一・ログ追加版） 
+// main.js（Firestore + Storage 対応版・firebaseInit.js 統一・ログ追加版）
 
 console.log("[DEBUG] main.js load start");
 
-// まず firebaseInit.js 以外のモジュールは先にインポート
+// ---------------------------------------------------------
+// ① firebaseInit.js を最初に読み込む（UploadTool と同じ方式）
+// ---------------------------------------------------------
+import { db, storage } from './firebaseInit.js';
+console.log("[DEBUG] firebaseInit imported, db & storage ready");
+
+// ---------------------------------------------------------
+// ② Firestore 使用モジュールを後から読み込む
+// ---------------------------------------------------------
 import * as roomLoader from './RoomConfigLoaderFirestore.js';
 console.log("[DEBUG] RoomConfigLoaderFirestore imported");
 
@@ -15,10 +23,10 @@ console.log("[DEBUG] gallery imported");
 import * as roomLinksModule from './roomLinks.js';
 console.log("[DEBUG] roomLinks imported");
 
-// firebaseInit.js を最後にインポート（ここで Firebase が初期化される）
-import { db, storage } from './firebaseInit.js';
-console.log("[DEBUG] firebaseInit imported, db & storage ready");
 
+// ---------------------------------------------------------
+// ギャラリー初期化メイン処理
+// ---------------------------------------------------------
 /**
  * 指定した roomId でギャラリーを初期化
  */
@@ -62,4 +70,26 @@ export async function initGalleryFromRoomId(roomId) {
     msg.textContent = 'ギャラリー情報の読み込みに失敗しました。';
     document.body.appendChild(msg);
   }
+}
+
+
+// ========================================================
+// URL パラメータから roomId を取得して init を実行
+// ========================================================
+console.log("[DEBUG] main.js param check start");
+
+const params = new URLSearchParams(window.location.search);
+const roomId = params.get('roomId');
+
+const messageEl = document.getElementById('message');
+
+if (!roomId) {
+  console.warn("[WARN] roomId が指定されていません");
+  if (messageEl) {
+    messageEl.style.display = 'block';
+    messageEl.textContent = '❌ roomId が指定されていません。URL に ?roomId=XXX を付加してください。';
+  }
+} else {
+  console.log("[DEBUG] initGalleryFromRoomId will be executed with:", roomId);
+  initGalleryFromRoomId(roomId);
 }
