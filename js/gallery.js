@@ -63,7 +63,6 @@ export async function initGallery(roomId, imageFiles, config) {
   // Firestore file 名から downloadURL を取得
   const imagesWithURL = await Promise.all(imageFiles.map(async img => {
     try {
-      // ルーム下 or share 下など Storage パスを判定
       let path = `rooms/${roomId}/${img.file}`;
       if (img.file.startsWith('share/')) path = img.file; // share/パスの場合
       const url = await getDownloadURL(storageRef(storage, path));
@@ -74,26 +73,34 @@ export async function initGallery(roomId, imageFiles, config) {
     }
   }));
 
-  // --- 画像読み込み ---
+  // --- サムネイルを除外して loadImages に渡す ---
+  const displayImages = imagesWithURL.filter(img => !img.file.toLowerCase().includes('thumbnail'));
+
   const loadedMeshes = await loadImages(
     scene,
-    imagesWithURL,
+    displayImages,
     WALL_WIDTH,
     WALL_HEIGHT,
     fixedLongSide,
     roomId
   );
 
-  // キャプション作成
+  // --- キャプション作成 ---
   loadedMeshes.forEach((mesh, idx) => {
-    const imgData = imagesWithURL[idx];
-    if (imgData.title && imgData.caption) {
+    const imgData = displayImages[idx];
+    const title = imgData.title || '';
+    const caption = imgData.caption || '';
+    const author = imgData.author || '';
+
+    // 全部空ならキャプションパネルを生成しない
+    if (title || caption || author) {
+      const content = [title, caption, author].filter(s => s).join('\n');
       const aspect = mesh.geometry.parameters.width / mesh.geometry.parameters.height;
-      mesh.userData.captionPanel = createCaptionPanel(mesh, imgData.title, imgData.caption, aspect);
+      mesh.userData.captionPanel = createCaptionPanel(mesh, content, '', aspect);
     }
   });
 
-  // ウィンドウリサイズ対応
+  // --- ウィンドウリサイズ対応 ---
   function onWindowResize() {
     camera.aspect = window.innerWidth / (window.innerHeight - HEADER_HEIGHT);
     camera.updateProjectionMatrix();
