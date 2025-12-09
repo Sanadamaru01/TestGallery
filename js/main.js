@@ -1,19 +1,34 @@
+// main.js（Firestore + Storage 対応版）
+
 import { loadRoomDataFromFirestore } from './RoomConfigLoaderFirestore.js';
 import { checkAccessAndShowMessage } from './accessControl.js';
 import { initGallery } from './gallery.js';
 import { updateRoomLinksUI } from './roomLinks.js';
 
-// URL から roomId を取得（?roomId=XXX の形式に変更）
+// Firebase CDN から import
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { app } from './firebaseInit.js'; // 既存の初期化済み app を使用
+
+// Firestore / Storage インスタンス
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+// URL から roomId を取得（?roomId=XXX の形式）
 function getCurrentRoomId() {
   const params = new URLSearchParams(location.search);
-  return params.get('roomId'); // ← 修正
+  return params.get('roomId');
 }
 
 const roomId = getCurrentRoomId();
 if (!roomId) {
   console.error("❌ roomId が取得できません");
+  const msg = document.createElement('div');
+  msg.className = 'message';
+  msg.textContent = '❌ roomId が指定されていません。URL に ?roomId=XXX を付加してください。';
+  document.body.appendChild(msg);
 } else {
-  loadRoomDataFromFirestore(roomId)
+  loadRoomDataFromFirestore(roomId, db, storage) // Firestore / Storage を渡す場合
     .then(({ config, images, raw }) => {
       const allowed = checkAccessAndShowMessage(raw.startDate, raw.endDate);
       if (!allowed) return;
@@ -22,10 +37,10 @@ if (!roomId) {
       document.getElementById('titleText').textContent = title;
       document.title = title;
 
-      // ★ 画像パスを各ルーム直下に変更
-      initGallery(images, config, `./rooms/${roomId}/images/`);
+      // 画像パスは各ルーム直下
+      initGallery(images, config, `./rooms/${roomId}/images/`, storage);
 
-      // ★ 前後リンクも room.html を参照する形式に変更
+      // 前後リンクも room.html 用に更新
       updateRoomLinksUI(roomId, 'room.html');
 
     })
