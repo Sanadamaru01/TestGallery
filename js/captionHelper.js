@@ -40,6 +40,7 @@ function createCaptionTexture(title,author,caption) {
 
 // 長文対応の改行処理
 function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  if (typeof text !== 'string') text = String(text || '');
   const words = text.split('');
   let line = '';
   for (let n = 0; n < words.length; n++) {
