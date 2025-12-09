@@ -40,12 +40,14 @@ export async function initGallery(roomId, imageFiles, config) {
   renderer.toneMappingExposure = 1.0;
   document.body.appendChild(renderer.domElement);
 
+  // --- 部屋の床・ドアなど作成 ---
   const { floor, door } = await buildRoom(scene, config);
 
   // ドアクリックでポータル index.html に戻る
   door.userData.onClick = () => window.location.href = '../../index.html';
   door.traverse(child => { if (child !== door) child.userData.onClick = door.userData.onClick; });
 
+  // ライト
   const light = new THREE.DirectionalLight(0xffffff, 1.2);
   const ambientLight = new THREE.AmbientLight(0x888888, 0.5);
   scene.add(light, light.target, ambientLight);
@@ -57,19 +59,22 @@ export async function initGallery(roomId, imageFiles, config) {
   // 画像読み込み・配置
   // -----------------------------
   const storage = getStorage(app);
-  const imageBasePath = `rooms/${roomId}/`;
 
-  // Firestore に保存されている file 名から downloadURL を取得
+  // Firestore file 名から downloadURL を取得
   const imagesWithURL = await Promise.all(imageFiles.map(async img => {
     try {
-      const url = await getDownloadURL(storageRef(storage, imageBasePath + img.file));
+      // ルーム下 or share 下など Storage パスを判定
+      let path = `rooms/${roomId}/${img.file}`;
+      if (img.file.startsWith('share/')) path = img.file; // share/パスの場合
+      const url = await getDownloadURL(storageRef(storage, path));
       return { ...img, downloadURL: url };
     } catch (e) {
-      console.warn(`Failed to load ${img.file}: ${e.message}`);
+      console.warn(`[WARN] Failed to load ${img.file}: ${e.message}`);
       return { ...img, downloadURL: null };
     }
   }));
 
+  // --- 画像読み込み ---
   const loadedMeshes = await loadImages(
     scene,
     imagesWithURL,
@@ -96,6 +101,7 @@ export async function initGallery(roomId, imageFiles, config) {
   window.addEventListener('resize', () => setTimeout(onWindowResize, 100));
   onWindowResize();
 
+  // --- アニメーションループ ---
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
@@ -115,7 +121,7 @@ export async function initGallery(roomId, imageFiles, config) {
     renderer.render(scene, camera);
   }
 
-  // クリック処理
+  // --- クリック処理 ---
   window.addEventListener('click', event => {
     const mouse = new THREE.Vector2(
       (event.clientX / window.innerWidth) * 2 - 1,
