@@ -40,21 +40,7 @@
 
   <div id="message" class="message" style="display:none;"></div>
 
-  <!-- ギャラリー描画 -->
-  <script type="module">
-    import { initGalleryFromRoomId } from './js/main.js';
-
-    // URLパラメータから roomId を取得
-    const params = new URLSearchParams(window.location.search);
-    const roomId = params.get('roomId');
-
-    const messageEl = document.getElementById('message');
-    if (!roomId) {
-      messageEl.style.display = 'block';
-      messageEl.textContent = '❌ roomId が指定されていません。URL に ?roomId=XXX を付加してください。';
-    } else {
-      initGalleryFromRoomId(roomId); // main.js 内で roomLinks も呼び出す
-    }
-  </script>
+  <!-- gallery main script（UploadTool と同じ方式） -->
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
