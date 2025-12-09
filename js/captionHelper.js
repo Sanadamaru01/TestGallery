@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 // テキストを描画した CanvasTexture を返す
-function createCaptionTexture(title, caption) {
+function createCaptionTexture(title,author,caption) {
   const canvas = document.createElement('canvas');
   canvas.width = 256;
   canvas.height = 128;
@@ -11,14 +11,29 @@ function createCaptionTexture(title, caption) {
   ctx.fillStyle = 'black';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  let currentY = 28;
+  
   // タイトル（少し大きめ）
   ctx.fillStyle = 'white';
   ctx.font = '20px sans-serif';
-  ctx.fillText(title, 10, 28);
-
-  // 解説（改行対応、少し大きめ）
+  if (title) {
+    ctx.fillText(title, 10, currentY);
+  }
+  
+  // 作者名（普通）
+  ctx.fillStyle = 'white';
   ctx.font = '14px sans-serif';
-  wrapText(ctx, caption, 10, 52, canvas.width - 20, 22);
+  if (author) {
+    currentY += 24; // タイトルの下に余白
+    ctx.fillText(author, 10, currentY);
+  }
+
+  // 解説（改行対応、普通）
+  ctx.font = '14px sans-serif';
+  if (caption) {
+    currentY += 24; // 作者の下に余白
+    wrapText(ctx, caption, 10, currentY, canvas.width - 20, 22);
+  }
 
   return new THREE.CanvasTexture(canvas);
 }
@@ -42,8 +57,8 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
 }
 
 // キャプションパネルを生成して返す
-export function createCaptionPanel(imageMesh, title, caption, aspect) {
-  const texture = createCaptionTexture(title, caption);
+export function createCaptionPanel(imageMesh, title, author, caption, aspect) {
+  const texture = createCaptionTexture(title, author, caption);
   const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
 
   // パネルサイズ固定
