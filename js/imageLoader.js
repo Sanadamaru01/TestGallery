@@ -4,7 +4,7 @@ import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstat
 import { app } from './firebaseInit.js';
 
 /**
- * ギャラリー用画像をロードして配置（Storage・非公開バケット対応）
+ * ギャラリー用画像をロードして配置（Storage対応）
  * @param {THREE.Scene} scene
  * @param {Array} imageFiles - Firestoreから取得した画像情報配列 { file, title, caption, author }
  * @param {number} wallWidth
@@ -19,52 +19,49 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
   const storage = getStorage(app);
   const imageBasePath = `rooms/${roomId}/`;
 
-  // ------------------------
-  // 1回だけ getDownloadURL を取得
-  // ------------------------
+  // まず全ての画像の downloadURL を一度だけ取得
   const imagesWithURL = await Promise.all(imageFiles.map(async img => {
     try {
       const url = await getDownloadURL(storageRef(storage, imageBasePath + img.file));
       return { ...img, downloadURL: url };
     } catch (e) {
-      console.warn(`[WARN] Failed to get URL for ${img.file}: ${e.message}`);
+      console.warn(`Failed to get URL for ${img.file}: ${e.message}`);
       return { ...img, downloadURL: null };
     }
   }));
 
-  // ------------------------
-  // 画像情報プリロードとサイズ計算
-  // ------------------------
-  const imageMetaList = await Promise.all(imagesWithURL.map(imgObj => {
+  // テクスチャロードと縦横比取得（Image() 二重ロードを削除）
+  const imageMetaList = await Promise.all(imagesWithURL.map(async imgObj => {
     if (!imgObj.downloadURL) return null;
 
     return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        const iw = img.width;
-        const ih = img.height;
-        let fw, fh;
-        if (iw >= ih) {
-          fw = fixedLongSide;
-          fh = fixedLongSide * (ih / iw);
-        } else {
-          fh = fixedLongSide;
-          fw = fixedLongSide * (iw / ih);
-        }
-
-        loader.load(imgObj.downloadURL, texture => {
+      loader.load(
+        imgObj.downloadURL,
+        texture => {
           texture.colorSpace = THREE.SRGBColorSpace;
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
           texture.generateMipmaps = false;
+
+          const iw = texture.image.width;
+          const ih = texture.image.height;
+          let fw, fh;
+          if (iw >= ih) {
+            fw = fixedLongSide;
+            fh = fixedLongSide * (ih / iw);
+          } else {
+            fh = fixedLongSide;
+            fw = fixedLongSide * (iw / ih);
+          }
+
           resolve({ fw, fh, texture, src: imgObj.file, title: imgObj.title, caption: imgObj.caption });
-        });
-      };
-      img.onerror = () => {
-        console.warn(`[WARN] Failed to load image: ${imgObj.file}`);
-        resolve(null);
-      };
-      img.src = imgObj.downloadURL;
+        },
+        undefined,
+        err => {
+          console.warn(`Failed to load image: ${imgObj.file}`, err);
+          resolve(null);
+        }
+      );
     });
   }));
 
@@ -120,9 +117,11 @@ export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wa
       panel.position.add(offsetVec);
       scene.add(panel);
 
+      // クリック対象に追加
       panel.userData.size = { width: img.fw, height: img.fh };
       scene.userData.clickablePanels.push(panel);
 
+      // キャプションパネル生成
       if (meta.title && meta.caption) {
         const aspect = img.fw / img.fh;
         const captionPanel = createCaptionPanel(panel, meta.title, meta.caption, aspect);
@@ -159,9 +158,8 @@ export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
 
     if (count === 0) continue;
 
-    const totalWidth = totalImageWidth;
     const wallPlan = { wall: wallName, images: [] };
-    let centerOffset = -totalWidth / 2;
+    let centerOffset = -totalImageWidth / 2; // 壁中央を0にする
 
     for (let i = 0; i < count; i++) {
       const idx = imageIndex + i;
@@ -169,7 +167,12 @@ export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
       const offset = centerOffset + fw / 2;
       centerOffset += fw + minSpacing;
 
-      wallPlan.images.push({ index: idx, fw, fh, offset });
+      wallPlan.images.push({
+        index: idx,
+        fw,
+        fh,
+        offset: offset
+      });
     }
 
     plans.push(wallPlan);
