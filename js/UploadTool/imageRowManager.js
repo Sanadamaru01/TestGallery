@@ -413,4 +413,4 @@ function renumberPreviewRows(previewArea) {
 }
 
 // エクスポート（必要なら外部から直接呼べるように）
-export { createImageRow, uploadFiles, handleFileSelect, handleThumbnailSelect };
+export { createImageRow, uploadFiles, handleFileSelect };
