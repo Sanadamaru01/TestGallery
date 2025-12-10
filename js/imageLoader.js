@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { createCaptionPanel } from './captionHelper.js';
+import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { app } from './firebaseInit.js';
 
 /**
- * ギャラリー用画像をロードして配置（公開バケット対応）
+ * ギャラリー用画像をロードして配置（Storage・非公開バケット対応）
  * @param {THREE.Scene} scene
  * @param {Array} imageFiles - Firestoreから取得した画像情報配列 { file, title, caption, author }
  * @param {number} wallWidth
@@ -14,16 +16,28 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
   const MIN_MARGIN = 1.0;
   const MIN_SPACING = 0.5;
   const loader = new THREE.TextureLoader();
+  const storage = getStorage(app);
+  const imageBasePath = `rooms/${roomId}/`;
 
-  // 公開バケット用に URL を直接生成
-  const imagesWithURL = imageFiles.map(img => {
-    const encodedPath = encodeURIComponent(`rooms/${roomId}/${img.file}`);
-    const url = `https://firebasestorage.googleapis.com/v0/b/gallery-us-ebe6e.appspot.com/o/${encodedPath}?alt=media`;
-    return { ...img, downloadURL: url };
-  });
+  // ------------------------
+  // 1回だけ getDownloadURL を取得
+  // ------------------------
+  const imagesWithURL = await Promise.all(imageFiles.map(async img => {
+    try {
+      const url = await getDownloadURL(storageRef(storage, imageBasePath + img.file));
+      return { ...img, downloadURL: url };
+    } catch (e) {
+      console.warn(`[WARN] Failed to get URL for ${img.file}: ${e.message}`);
+      return { ...img, downloadURL: null };
+    }
+  }));
 
+  // ------------------------
   // 画像情報プリロードとサイズ計算
+  // ------------------------
   const imageMetaList = await Promise.all(imagesWithURL.map(imgObj => {
+    if (!imgObj.downloadURL) return null;
+
     return new Promise(resolve => {
       const img = new Image();
       img.onload = () => {
@@ -47,7 +61,7 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
         });
       };
       img.onerror = () => {
-        console.warn(`Failed to load image: ${imgObj.file}`);
+        console.warn(`[WARN] Failed to load image: ${imgObj.file}`);
         resolve(null);
       };
       img.src = imgObj.downloadURL;
@@ -106,11 +120,9 @@ export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wa
       panel.position.add(offsetVec);
       scene.add(panel);
 
-      // クリック対象に追加
       panel.userData.size = { width: img.fw, height: img.fh };
       scene.userData.clickablePanels.push(panel);
 
-      // キャプションパネル生成
       if (meta.title && meta.caption) {
         const aspect = img.fw / img.fh;
         const captionPanel = createCaptionPanel(panel, meta.title, meta.caption, aspect);
@@ -147,27 +159,17 @@ export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
 
     if (count === 0) continue;
 
-    const totalSpacing = minSpacing * (count - 1);
     const totalWidth = totalImageWidth;
-    const extraSpace = availableWidth - totalWidth;
-
     const wallPlan = { wall: wallName, images: [] };
+    let centerOffset = -totalWidth / 2;
 
-    // 各写真の中心位置を中央揃えで計算
-    let centerOffset = -totalWidth / 2; // 壁中央を0にする
     for (let i = 0; i < count; i++) {
       const idx = imageIndex + i;
       const { fw, fh } = imageSizes[idx];
-
       const offset = centerOffset + fw / 2;
       centerOffset += fw + minSpacing;
 
-      wallPlan.images.push({
-        index: idx,
-        fw,
-        fh,
-        offset: offset
-      });
+      wallPlan.images.push({ index: idx, fw, fh, offset });
     }
 
     plans.push(wallPlan);
