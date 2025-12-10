@@ -9,7 +9,7 @@ const db = getFirestore(app);
 
 // -------------------- 画像一覧読み込み --------------------
 export async function loadRoomImages(roomId, previewArea, logArea) {
-  if (!roomId) return;
+  if (!roomId || !previewArea) return;
   previewArea.innerHTML = "";
 
   // コントロールバー（順序保存ボタン）
@@ -20,6 +20,7 @@ export async function loadRoomImages(roomId, previewArea, logArea) {
     controlBar.style.margin = "8px 0";
     controlBar.style.display = "flex";
     controlBar.style.gap = "8px";
+
     const saveOrderBtn = document.createElement("button");
     saveOrderBtn.textContent = "順序保存";
     saveOrderBtn.addEventListener("click", async () => {
@@ -35,19 +36,19 @@ export async function loadRoomImages(roomId, previewArea, logArea) {
 
     const docs = imagesSnap.docs.map(d => ({ id: d.id, data: d.data() }));
 
-    // orderが無い場合は createdAt を fallback にしてソート
+    // order 昇順（fallback createdAt）
     docs.sort((a, b) => {
       const ao = a.data.order ?? null;
       const bo = b.data.order ?? null;
       if (ao !== null && bo !== null) return ao - bo;
-      if (ao !== null && bo === null) return -1;
-      if (ao === null && bo !== null) return 1;
-      const at = a.data.createdAt?.toMillis?.() ?? a.data.createdAt ?? 0;
-      const bt = b.data.createdAt?.toMillis?.() ?? b.data.createdAt ?? 0;
+      if (ao !== null) return -1;
+      if (bo !== null) return 1;
+      const at = a.data.createdAt?.toMillis?.() ?? 0;
+      const bt = b.data.createdAt?.toMillis?.() ?? 0;
       return at - bt;
     });
 
-    // order が無い画像に初期値を付与
+    // order 初期化
     const needOrderAssign = docs.some(d => d.data.order === undefined || d.data.order === null);
     if (needOrderAssign) {
       const updates = [];
@@ -62,28 +63,35 @@ export async function loadRoomImages(roomId, previewArea, logArea) {
         }
       }
       if (updates.length > 0) await Promise.all(updates);
-      log(`🔧 order が無かった画像に初期値を付与しました`, logArea);
     }
 
-    // プレビュー行作成
+    // 行作成 or 更新
     for (const d of docs) {
       const data = d.data;
       if (data.file === "thumbnail.webp") continue;
+
       let downloadURL = data.downloadURL || "";
       if (!downloadURL && data.file) {
         try {
           const storagePath = data.file.includes('/') ? data.file : `rooms/${roomId}/${data.file}`;
-          downloadURL = await getDownloadURL(ref(storage, storagePath));
+          const storageRefObj = ref(storage, storagePath);
+          downloadURL = await getDownloadURL(storageRefObj);
         } catch (e) {
           log(`❌ 画像 URL 取得失敗: ${data.file} - ${e.message}`, logArea);
         }
       }
-      createImageRow(previewArea, roomId, d.id, { ...data, downloadURL }, true, logArea);
-    }
 
+      const existingRow = previewArea.querySelector(`.file-row[data-doc-id="${d.id}"]`);
+      if (existingRow) {
+        existingRow.querySelector(".titleInput").value = data.title || "";
+        existingRow.querySelector(".captionInput").value = data.caption || "";
+        existingRow.querySelector(".authorInput").value = data.author || "";
+      } else {
+        createImageRow(previewArea, roomId, d.id, { ...data, downloadURL }, true, logArea);
+      }
+    }
   } catch (e) {
     log(`❌ 画像読み込みエラー: ${e.message}`, logArea);
-    console.error(e);
   }
 }
 
@@ -95,12 +103,12 @@ export async function handleThumbnailSelect(file, roomId, logArea) {
 
   const blob = await resizeImageToWebp(renamedFile, 1600);
   const storagePath = `rooms/${roomId}/thumbnail.webp`;
-  const storageRef = ref(storage, storagePath);
+  const storageRefObj = ref(storage, storagePath);
 
   try {
-    await deleteObject(storageRef).catch(()=>{});
-    await uploadBytesResumable(storageRef, blob);
-    const downloadURL = await getDownloadURL(storageRef);
+    await deleteObject(storageRefObj).catch(()=>{});
+    await uploadBytesResumable(storageRefObj, blob);
+    const downloadURL = await getDownloadURL(storageRefObj);
 
     const imagesSnap = await getDocs(collection(db, `rooms/${roomId}/images`));
     let docId = null;
@@ -124,12 +132,12 @@ export async function handleThumbnailSelect(file, roomId, logArea) {
     document.getElementById("thumbnailImg").src = downloadURL;
   } catch(e){
     log(`❌ サムネイルアップロード失敗: ${e.message}`, logArea);
-    console.error(e);
   }
 }
 
 // -------------------- 通常ファイル選択 --------------------
 export function handleFileSelect(fileInput, previewArea, logArea) {
+  if (!fileInput || !previewArea) return;
   fileInput.addEventListener("change", () => {
     const files = Array.from(fileInput.files || []);
     for (const file of files) {
@@ -149,30 +157,24 @@ export function handleFileSelect(fileInput, previewArea, logArea) {
 
 // -------------------- 通常アップロード --------------------
 export async function uploadFiles(previewArea, roomId, logArea) {
+  if (!previewArea || !roomId) return;
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const uploadRows = rows.filter(r => r._fileObject);
-  if (uploadRows.length === 0) {
-    log("アップロードする新規ファイルがありません", logArea);
-    return;
-  }
+  if (uploadRows.length === 0) return log("アップロードする新規ファイルがありません", logArea);
 
   let currentMaxOrder = -1;
   try {
     const imagesSnap = await getDocs(collection(db, `rooms/${roomId}/images`));
-    imagesSnap.forEach(d => {
-      const od = d.data().order;
-      if (typeof od === "number" && od > currentMaxOrder) currentMaxOrder = od;
-    });
+    imagesSnap.forEach(d => { const od = d.data().order; if(typeof od === "number" && od > currentMaxOrder) currentMaxOrder = od; });
   } catch (e) {
     log(`❌ 現行画像の order 取得失敗: ${e.message}`, logArea);
   }
 
-  const allRows = Array.from(previewArea.querySelectorAll(".file-row"));
   let nextOrder = currentMaxOrder + 1;
+  const allRows = Array.from(previewArea.querySelectorAll(".file-row"));
 
   for (const row of allRows) {
     if (!row._fileObject) continue;
-
     const meta = row.querySelector(".file-meta");
     const title = meta.querySelector(".titleInput").value.trim();
     const caption = meta.querySelector(".captionInput").value.trim();
@@ -183,10 +185,10 @@ export async function uploadFiles(previewArea, roomId, logArea) {
       const blob = await resizeImageToWebp(fileObj, 1600);
       const fileName = crypto.randomUUID() + ".webp";
       const storagePath = `rooms/${roomId}/${fileName}`;
-      const storageRef = ref(storage, storagePath);
+      const storageRefObj = ref(storage, storagePath);
 
-      await uploadBytesResumable(storageRef, blob);
-      const downloadURL = await getDownloadURL(storageRef);
+      await uploadBytesResumable(storageRefObj, blob);
+      const downloadURL = await getDownloadURL(storageRefObj);
 
       await addDoc(collection(db, `rooms/${roomId}/images`), {
         file: fileName,
@@ -201,7 +203,6 @@ export async function uploadFiles(previewArea, roomId, logArea) {
       nextOrder++;
     } catch (e) {
       log(`❌ アップロード失敗: ${fileObj.name} - ${e.message}`, logArea);
-      console.error(e);
     }
   }
 
@@ -210,10 +211,8 @@ export async function uploadFiles(previewArea, roomId, logArea) {
 
 // -------------------- 順序保存 --------------------
 async function saveCurrentOrderToFirestore(previewArea, roomId, logArea) {
-  if (!roomId) {
-    log("ルームが選択されていません。", logArea);
-    return;
-  }
+  if (!previewArea || !roomId) return;
+
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const updates = [];
   rows.forEach((r, idx) => {
@@ -222,11 +221,7 @@ async function saveCurrentOrderToFirestore(previewArea, roomId, logArea) {
     r.dataset.order = idx;
     updates.push({ docId, order: idx });
   });
-
-  if (updates.length === 0) {
-    log("保存する画像がありません。", logArea);
-    return;
-  }
+  if (updates.length === 0) return log("保存する画像がありません。", logArea);
 
   try {
     const promises = updates.map(item =>
@@ -263,6 +258,7 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   img.style.objectFit = "cover";
   img.style.background = "#f0f0f0";
 
+  // --- order control ---
   const orderCtrl = document.createElement("div");
   orderCtrl.style.display = "flex";
   orderCtrl.style.flexDirection = "column";
@@ -324,14 +320,13 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
 
   if (!isExisting && data._fileObject) row._fileObject = data._fileObject;
 
-  // --- 上下ボタン ---
+  // --- up / down ---
   upBtn.addEventListener("click", () => {
     const prev = row.previousElementSibling;
     if (!prev) return;
     row.parentElement.insertBefore(row, prev);
     renumberPreviewRows(previewArea);
   });
-
   downBtn.addEventListener("click", () => {
     const next = row.nextElementSibling;
     if (!next) return;
@@ -340,7 +335,7 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   });
 
   // 更新
-  updateBtn.addEventListener("click", async ()=>{
+  updateBtn.addEventListener("click", async ()=> {
     if(!isExisting){ statusText.textContent="(未アップロード)"; return; }
     try{
       await updateDoc(doc(db, `rooms/${roomId}/images/${docId}`), {
@@ -355,7 +350,7 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   });
 
   // 削除
-  deleteBtn.addEventListener("click", async ()=>{
+  deleteBtn.addEventListener("click", async ()=> {
     if(!confirm("本当に削除しますか？")) return;
     try{
       if(isExisting){
@@ -377,9 +372,10 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   previewArea.appendChild(row);
 }
 
-// -------------------- 補助: dataset.order 再番号付与 --------------------
+// -------------------- 再番号付与 --------------------
 function renumberPreviewRows(previewArea) {
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
-  rows.forEach((r, idx) => { r.dataset.order = idx; });
+  rows.forEach((r, idx) => r.dataset.order = idx);
 }
 
+export { createImageRow, uploadFiles, handleFileSelect, handleThumbnailSelect, loadRoomImages };
