@@ -4,7 +4,7 @@ import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstat
 import { app } from './firebaseInit.js';
 
 /**
- * ギャラリー用画像をロードして配置（Storage対応、URL一括取得版）
+ * ギャラリー用画像をロードして配置（Storage対応・ベースURL使用）
  * @param {THREE.Scene} scene
  * @param {Array} imageFiles - Firestoreから取得した画像情報配列 { file, title, caption, author }
  * @param {number} wallWidth
@@ -19,20 +19,26 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
   const storage = getStorage(app);
   const imageBasePath = `rooms/${roomId}/`;
 
-  // --- 1回だけ Storage URL を取得 ---
-  let baseURL = '';
-  try {
-    // フォルダ自体の参照で1回だけ getDownloadURL
-    const ref = storageRef(storage, imageBasePath);
-    baseURL = await getDownloadURL(ref);
-    if (!baseURL.endsWith('/')) baseURL += '/';
-  } catch (e) {
-    console.warn(`[WARN] Failed to get base URL for ${roomId}: ${e.message}`);
+  let baseURL = null;
+
+  // --- 1つ目のファイルからベースURLを取得 ---
+  if (imageFiles.length > 0) {
+    try {
+      const firstFile = imageFiles[0].file;
+      const firstURL = await getDownloadURL(storageRef(storage, imageBasePath + firstFile));
+      // URL の最後のファイル名部分を削除してベースURLを作る
+      baseURL = firstURL.replace(encodeURIComponent(firstFile), '');
+    } catch (e) {
+      console.warn(`[WARN] Failed to get base URL for ${roomId}: ${e.message}`);
+    }
   }
 
-  // ファイル名から URL を組み立て
+  // --- 各ファイルのURLを生成 ---
   const imagesWithURL = imageFiles.map(img => {
-    const url = img.file.toLowerCase().includes('thumbnail') ? null : baseURL + img.file;
+    let url = null;
+    if (baseURL) {
+      url = baseURL + encodeURIComponent(img.file);
+    }
     return { ...img, downloadURL: url };
   });
 
@@ -72,7 +78,7 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
   return applyWallLayouts(scene, layoutPlan, validImageMetaList, wallWidth, wallHeight);
 }
 
-// 以下、applyWallLayouts と planWallLayouts は元のまま
+// 以下 applyWallLayouts と planWallLayouts は元のコードと同じ
 export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wallHeight) {
   const GALLERY_HEIGHT = wallHeight / 2;
   scene.userData.clickablePanels = scene.userData.clickablePanels || [];
@@ -115,9 +121,11 @@ export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wa
       panel.position.add(offsetVec);
       scene.add(panel);
 
+      // クリック対象に追加
       panel.userData.size = { width: img.fw, height: img.fh };
       scene.userData.clickablePanels.push(panel);
 
+      // キャプションパネル生成
       if (meta.title && meta.caption) {
         const aspect = img.fw / img.fh;
         const captionPanel = createCaptionPanel(panel, meta.title, meta.caption, aspect);
@@ -151,16 +159,13 @@ export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
 
     if (count === 0) continue;
 
-    const totalSpacing = minSpacing * (count - 1);
-    const totalWidth = totalImageWidth;
-    const extraSpace = availableWidth - totalWidth;
-
     const wallPlan = { wall: wallName, images: [] };
-    let centerOffset = -totalWidth / 2;
+    let centerOffset = -totalImageWidth / 2;
 
     for (let i = 0; i < count; i++) {
       const idx = imageIndex + i;
       const { fw, fh } = imageSizes[idx];
+
       const offset = centerOffset + fw / 2;
       centerOffset += fw + minSpacing;
 
