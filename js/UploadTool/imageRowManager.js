@@ -24,7 +24,7 @@ export async function loadRoomImages(roomId, previewArea, logArea) {
     const saveOrderBtn = document.createElement("button");
     saveOrderBtn.textContent = "順序保存";
     saveOrderBtn.addEventListener("click", async () => {
-      await saveCurrentOrderToFirestore(previewArea, roomId, logArea);
+      await saveCurrentOrderToFirestore(previewArea, logArea);
     });
     controlBar.appendChild(saveOrderBtn);
     previewArea.parentElement.insertBefore(controlBar, previewArea);
@@ -87,7 +87,7 @@ export async function loadRoomImages(roomId, previewArea, logArea) {
         existingRow.querySelector(".captionInput").value = data.caption || "";
         existingRow.querySelector(".authorInput").value = data.author || "";
       } else {
-        createImageRow(previewArea, roomId, d.id, { ...data, downloadURL }, true, logArea);
+        createImageRow(previewArea, d.id, { ...data, downloadURL }, true, logArea);
       }
     }
   } catch (e) {
@@ -143,7 +143,7 @@ export function handleFileSelect(fileInput, previewArea, logArea) {
     for (const file of files) {
       const previewURL = URL.createObjectURL(file);
       const tempId = crypto.randomUUID();
-      createImageRow(previewArea, null, tempId, {
+      createImageRow(previewArea, tempId, {
         title: file.name,
         caption: "",
         author: "",
@@ -156,8 +156,13 @@ export function handleFileSelect(fileInput, previewArea, logArea) {
 }
 
 // -------------------- 通常アップロード --------------------
-export async function uploadFiles(previewArea, roomId, logArea) {
-  if (!previewArea || !roomId) return;
+export async function uploadFiles(previewArea, logArea) {
+  if (!previewArea) return;
+
+  const roomSelect = document.getElementById("roomSelect");
+  const roomId = roomSelect?.value;
+  if (!roomId) return log("❌ ルームを選択してください", logArea);
+
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const uploadRows = rows.filter(r => r._fileObject);
   if (uploadRows.length === 0) return log("アップロードする新規ファイルがありません", logArea);
@@ -210,8 +215,12 @@ export async function uploadFiles(previewArea, roomId, logArea) {
 }
 
 // -------------------- 順序保存 --------------------
-async function saveCurrentOrderToFirestore(previewArea, roomId, logArea) {
-  if (!previewArea || !roomId) return;
+async function saveCurrentOrderToFirestore(previewArea, logArea) {
+  if (!previewArea) return;
+
+  const roomSelect = document.getElementById("roomSelect");
+  const roomId = roomSelect?.value;
+  if (!roomId) return log("❌ ルームが選択されていません", logArea);
 
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   const updates = [];
@@ -239,7 +248,7 @@ async function saveCurrentOrderToFirestore(previewArea, roomId, logArea) {
 }
 
 // -------------------- 画像行作成 --------------------
-function createImageRow(previewArea, roomId, docId, data, isExisting = false, logArea) {
+function createImageRow(previewArea, docId, data, isExisting = false, logArea) {
   const row = document.createElement("div");
   row.className = "file-row";
   row.style.display = "flex";
@@ -337,6 +346,11 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   // 更新
   updateBtn.addEventListener("click", async ()=> {
     if(!isExisting){ statusText.textContent="(未アップロード)"; return; }
+
+    const roomSelect = document.getElementById("roomSelect");
+    const roomId = roomSelect?.value;
+    if (!roomId) { statusText.textContent="更新失敗"; return log("❌ ルームが選択されていません", logArea); }
+
     try{
       await updateDoc(doc(db, `rooms/${roomId}/images/${docId}`), {
         title:titleInput.value.trim(),
@@ -352,6 +366,11 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   // 削除
   deleteBtn.addEventListener("click", async ()=> {
     if(!confirm("本当に削除しますか？")) return;
+
+    const roomSelect = document.getElementById("roomSelect");
+    const roomId = roomSelect?.value;
+    if (!roomId) return log("❌ ルームが選択されていません", logArea);
+
     try{
       if(isExisting){
         await deleteDoc(doc(db, `rooms/${roomId}/images/${docId}`));
