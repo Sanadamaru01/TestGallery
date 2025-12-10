@@ -53,8 +53,7 @@ export async function loadRoomDataFromFirestore(roomId, db) {
       title: d.title,
       caption: d.caption,
       author: d.author,
-      createdAt: d.createdAt,
-      updatedAt: d.updatedAt
+      order: d.order ?? Number.MAX_SAFE_INTEGER,
     };
   });
 
