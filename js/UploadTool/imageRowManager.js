@@ -10,6 +10,12 @@ const db = getFirestore(app);
 // -------------------- 画像一覧読み込み --------------------
 export async function loadRoomImages(roomId, previewArea, logArea) {
   if (!roomId) return;
+
+  // ★ 追加：previewArea をクローンしてイベントリスナーを全削除
+  const newArea = previewArea.cloneNode(false);
+  previewArea.parentNode.replaceChild(newArea, previewArea);
+  previewArea = newArea;
+  
   previewArea.innerHTML = "";
 
   // コントロールバー（順序保存ボタン）を作る（既にあれば使う）
