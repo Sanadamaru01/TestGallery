@@ -29,7 +29,7 @@ const roomTitleInput = document.getElementById("roomTitleInput");
 const updateRoomBtn = document.getElementById("updateRoomBtn");
 
 const fileInput = document.getElementById("fileInput");
-const previewArea = document.getElementById("previewArea");
+let previewArea = document.getElementById("previewArea");
 const uploadBtn = document.getElementById("uploadBtn");
 
 const uploadThumbnailBtn = document.getElementById("uploadThumbnailBtn");
@@ -75,7 +75,7 @@ async function loadRooms() {
 roomSelect.addEventListener("change", onRoomChange);
 
 // -------------------------------
-// room 切替時
+// room 切替 / UI初期化
 // -------------------------------
 async function onRoomChange() {
   const roomId = roomSelect.value;
@@ -83,27 +83,24 @@ async function onRoomChange() {
 
   const snap = await getDoc(doc(db, "rooms", roomId));
   if (!snap.exists()) return;
-
   const data = snap.data();
 
   // タイトル反映
   roomTitleInput.value = data.roomTitle ?? "";
 
-  // 画像ロード
+  // 画像ロード（previewArea を新しい DOM として返却）
   previewArea = await loadRoomImages(roomId, previewArea, logArea);
 
   // -------------------------------
-  //  テクスチャ（旧方式）
+  // テクスチャ反映
   // -------------------------------
   const tex = data.texturePaths ?? {};
-
   const currentValues = {
     wall: tex.wall ?? "",
     floor: tex.floor ?? "",
     ceiling: tex.ceiling ?? "",
     door: tex.door ?? ""
   };
-
   await loadAllTextures(
     {
       wallTexture: wallSelect,
@@ -116,19 +113,35 @@ async function onRoomChange() {
   );
 
   // -------------------------------
-  // サムネイル読み込み（Storage）
+  // サムネイル読み込み
   // -------------------------------
   const storage = getStorage(app);
   const thumbRef = storageRef(storage, `rooms/${roomId}/thumbnail.webp`);
-
   try {
     const url = await getDownloadURL(thumbRef);
     document.getElementById("thumbnailImg").src = url;
   } catch (e) {
-    // サムネイルが無い場合
     document.getElementById("thumbnailImg").src = "/noimage.webp";
   }
 }
+
+// -------------------------------
+// ルームタイトル更新
+// -------------------------------
+updateRoomBtn.addEventListener("click", async () => {
+  const roomId = roomSelect.value;
+  if (!roomId) return;
+
+  await updateDoc(doc(db, "rooms", roomId), {
+    roomTitle: roomTitleInput.value,
+    updatedAt: serverTimestamp()
+  });
+
+  log(`[INFO] ルームタイトル更新: ${roomTitleInput.value}`, logArea);
+
+  // DB更新後は同じルームを再ロード
+  await onRoomChange();
+});
 
 // -------------------------------
 // テクスチャ保存（旧方式）
@@ -137,14 +150,15 @@ async function saveTexture(type, value) {
   const roomId = roomSelect.value;
   if (!roomId) return;
 
-  const ref = doc(db, "rooms", roomId);
-
-  await updateDoc(ref, {
+  await updateDoc(doc(db, "rooms", roomId), {
     [`texturePaths.${type}`]: value,
     updatedAt: serverTimestamp()
   });
 
   log(`[INFO] ${type} テクスチャ更新: ${value}`, logArea);
+
+  // DB更新後に再ロード
+  await onRoomChange();
 }
 
 // --- select change ---
@@ -162,7 +176,11 @@ uploadBtn.addEventListener("click", async () => {
     log("[WARN] ルームを選択してください", logArea);
     return;
   }
+
   await uploadFiles(previewArea, roomId, logArea);
+
+  // アップロード後も再ロード
+  await onRoomChange();
 });
 
 // -------------------------------
@@ -173,19 +191,4 @@ uploadThumbnailBtn.addEventListener("click", () => thumbnailFileInput.click());
 thumbnailFileInput.addEventListener("change", async () => {
   const file = thumbnailFileInput.files[0];
   if (file) await handleThumbnailSelect(file, roomSelect.value, logArea);
-});
-
-// -------------------------------
-// タイトル更新
-// -------------------------------
-updateRoomBtn.addEventListener("click", async () => {
-  const roomId = roomSelect.value;
-  if (!roomId) return;
-
-  await updateDoc(doc(db, "rooms", roomId), {
-    roomTitle: roomTitleInput.value,
-    updatedAt: serverTimestamp()
-  });
-
-  log(`[INFO] ルームタイトル更新: ${roomTitleInput.value}`, logArea);
 });
