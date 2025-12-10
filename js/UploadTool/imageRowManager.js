@@ -377,5 +377,3 @@ function renumberPreviewRows(previewArea) {
   const rows = Array.from(previewArea.querySelectorAll(".file-row"));
   rows.forEach((r, idx) => r.dataset.order = idx);
 }
-
-export { createImageRow, uploadFiles, handleFileSelect, handleThumbnailSelect, loadRoomImages };
