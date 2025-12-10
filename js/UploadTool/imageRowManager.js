@@ -99,6 +99,7 @@ export async function loadRoomImages(roomId, previewArea, logArea) {
     log(`❌ 画像読み込みエラー: ${e.message}`, logArea);
     console.error(e);
   }
+  return previewArea; // ← ★ newArea を返す！
 }
 
 // -------------------- サムネイルアップロード --------------------
