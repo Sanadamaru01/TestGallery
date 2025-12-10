@@ -383,5 +383,3 @@ function renumberPreviewRows(previewArea) {
   rows.forEach((r, idx) => { r.dataset.order = idx; });
 }
 
-// -------------------- エクスポート --------------------
-export { createImageRow, uploadFiles, handleFileSelect, handleThumbnailSelect, loadRoomImages };
