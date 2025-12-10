@@ -1,5 +1,6 @@
+// imageRowManager.js
 import { getStorage, ref, getDownloadURL, uploadBytesResumable, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { app } from '../firebaseInit.js';
 import { log, resizeImageToWebp } from './utils.js';
 
@@ -11,14 +12,71 @@ export async function loadRoomImages(roomId, previewArea, logArea) {
   if (!roomId) return;
   previewArea.innerHTML = "";
 
+  // コントロールバー（順序保存ボタン）を作る（既にあれば使う）
+  let controlBar = document.getElementById("imageOrderControlBar");
+  if (!controlBar) {
+    controlBar = document.createElement("div");
+    controlBar.id = "imageOrderControlBar";
+    controlBar.style.margin = "8px 0";
+    controlBar.style.display = "flex";
+    controlBar.style.gap = "8px";
+    const saveOrderBtn = document.createElement("button");
+    saveOrderBtn.textContent = "順序保存";
+    saveOrderBtn.addEventListener("click", async () => {
+      await saveCurrentOrderToFirestore(previewArea, roomId, logArea);
+    });
+    controlBar.appendChild(saveOrderBtn);
+    previewArea.parentElement.insertBefore(controlBar, previewArea);
+  }
+
   try {
     const imagesSnap = await getDocs(collection(db, `rooms/${roomId}/images`));
     log(`✅ ${imagesSnap.size} 件の画像を読み込みました`, logArea);
 
-    for (const imgDoc of imagesSnap.docs) {
-      const data = imgDoc.data();
-      if (data.file === "thumbnail.webp") continue; // サムネイルは除外
+    // map docs
+    const docs = imagesSnap.docs.map(d => ({ id: d.id, data: d.data() }));
 
+    // sort: order asc if present, else createdAt asc (fallback)
+    docs.sort((a, b) => {
+      const ao = (a.data.order !== undefined && a.data.order !== null) ? a.data.order : null;
+      const bo = (b.data.order !== undefined && b.data.order !== null) ? b.data.order : null;
+      if (ao !== null && bo !== null) return ao - bo;
+      if (ao !== null && bo === null) return -1;
+      if (ao === null && bo !== null) return 1;
+      // both null -> fallback to createdAt (if present)
+      const at = a.data.createdAt ? a.data.createdAt.toMillis?.() ?? a.data.createdAt : 0;
+      const bt = b.data.createdAt ? b.data.createdAt.toMillis?.() ?? b.data.createdAt : 0;
+      return at - bt;
+    });
+
+    // If some docs had missing order, assign sequential orders and save (initialization)
+    const needOrderAssign = docs.some((d, idx) => d.data.order === undefined || d.data.order === null);
+    if (needOrderAssign) {
+      const updates = [];
+      for (let i = 0; i < docs.length; i++) {
+        const d = docs[i];
+        // set order to index if missing
+        if (d.data.order === undefined || d.data.order === null) {
+          updates.push(updateDoc(doc(db, `rooms/${roomId}/images/${d.id}`), {
+            order: i,
+            updatedAt: serverTimestamp()
+          }).catch(e => {
+            log(`❌ order 初期値保存失敗: ${d.id} - ${e.message}`, logArea);
+          }));
+          // also update local copy so createImageRow receives order
+          d.data.order = i;
+        }
+      }
+      if (updates.length > 0) {
+        await Promise.all(updates);
+        log(`🔧 order が無かった画像に初期値を付与しました`, logArea);
+      }
+    }
+
+    // create rows in sorted order
+    for (const d of docs) {
+      const data = d.data;
+      if (data.file === "thumbnail.webp") continue; // サムネイルは除外
       let downloadURL = data.downloadURL || "";
       if (!downloadURL && data.file) {
         try {
@@ -29,7 +87,7 @@ export async function loadRoomImages(roomId, previewArea, logArea) {
           log(`❌ 画像 URL 取得失敗: ${data.file} - ${e.message}`, logArea);
         }
       }
-      createImageRow(previewArea, roomId, imgDoc.id, { ...data, downloadURL }, true, logArea);
+      createImageRow(previewArea, roomId, d.id, { ...data, downloadURL }, true, logArea);
     }
   } catch (e) {
     log(`❌ 画像読み込みエラー: ${e.message}`, logArea);
@@ -85,7 +143,9 @@ export function handleFileSelect(fileInput, previewArea, logArea) {
     const files = Array.from(fileInput.files || []);
     for (const file of files) {
       const previewURL = URL.createObjectURL(file);
-      createImageRow(previewArea, null, crypto.randomUUID(), {
+      // use a temporary id for the preview row (will be replaced by Firestore id after upload+reload)
+      const tempId = crypto.randomUUID();
+      createImageRow(previewArea, null, tempId, {
         title: file.name,
         caption: "",
         author: "",
@@ -106,7 +166,27 @@ export async function uploadFiles(previewArea, roomId, logArea) {
     return;
   }
 
-  for (const row of uploadRows) {
+  // get current max order from Firestore
+  let currentMaxOrder = -1;
+  try {
+    const imagesSnap = await getDocs(collection(db, `rooms/${roomId}/images`));
+    imagesSnap.forEach(d => {
+      const od = d.data().order;
+      if (typeof od === "number" && od > currentMaxOrder) currentMaxOrder = od;
+    });
+  } catch (e) {
+    log(`❌ 現行画像の order 取得失敗: ${e.message}`, logArea);
+  }
+
+  // We'll assign orders to the new uploads in the order they appear in the previewArea,
+  // placing them after the currentMaxOrder
+  // Determine the previewArea order index for each upload row
+  const allRows = Array.from(previewArea.querySelectorAll(".file-row"));
+  let nextOrder = currentMaxOrder + 1;
+
+  for (const row of allRows) {
+    if (!row._fileObject) continue;
+    // only process new files (those with _fileObject)
     const meta = row.querySelector(".file-meta");
     const title = meta.querySelector(".titleInput").value.trim();
     const caption = meta.querySelector(".captionInput").value.trim();
@@ -126,18 +206,62 @@ export async function uploadFiles(previewArea, roomId, logArea) {
         file: fileName,
         downloadURL,
         title, caption, author,
+        order: nextOrder,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
 
-      log(`✅ アップロード完了: ${fileName}`, logArea);
+      log(`✅ アップロード完了: ${fileName} (order=${nextOrder})`, logArea);
+      nextOrder++;
     } catch (e) {
       log(`❌ アップロード失敗: ${fileObj.name} - ${e.message}`, logArea);
       console.error(e);
     }
   }
 
+  // reload images after upload
   await loadRoomImages(roomId, previewArea, logArea);
+}
+
+// -------------------- 順序保存（UI の並び順 -> Firestore） --------------------
+async function saveCurrentOrderToFirestore(previewArea, roomId, logArea) {
+  if (!roomId) {
+    log("ルームが選択されていません。", logArea);
+    return;
+  }
+  const rows = Array.from(previewArea.querySelectorAll(".file-row"));
+  // Build list of {docId, order} for existing docs only
+  const updates = [];
+  rows.forEach((r, idx) => {
+    const docId = r.dataset.docId;
+    if (!docId) return; // 新規アップロード前の行は無視（uploadFilesで処理される）
+    // set dataset order too
+    r.dataset.order = idx;
+    updates.push({ docId, order: idx });
+  });
+
+  if (updates.length === 0) {
+    log("保存する画像がありません。", logArea);
+    return;
+  }
+
+  // perform updates (parallel)
+  try {
+    const promises = updates.map(item =>
+      updateDoc(doc(db, `rooms/${roomId}/images/${item.docId}`), {
+        order: item.order,
+        updatedAt: serverTimestamp()
+      }).catch(e => {
+        log(`❌ order 更新失敗: ${item.docId} - ${e.message}`, logArea);
+      })
+    );
+    await Promise.all(promises);
+    log("✅ 並び順を保存しました", logArea);
+    // reload to ensure consistent ordering
+    await loadRoomImages(roomId, previewArea, logArea);
+  } catch (e) {
+    log(`❌ 並び順保存エラー: ${e.message}`, logArea);
+  }
 }
 
 // -------------------- 画像行作成 --------------------
@@ -149,6 +273,10 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   row.style.alignItems = "flex-start";
   row.style.marginBottom = "8px";
 
+  // attach docId & order if available
+  if (docId) row.dataset.docId = docId;
+  if (typeof data.order === "number") row.dataset.order = data.order;
+
   const img = document.createElement("img");
   img.src = data.downloadURL || "";
   img.alt = data.title || "(no title)";
@@ -156,6 +284,23 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
   img.style.height = "120px";
   img.style.objectFit = "cover";
   img.style.background = "#f0f0f0";
+
+  // --- order control (up/down) ---
+  const orderCtrl = document.createElement("div");
+  orderCtrl.style.display = "flex";
+  orderCtrl.style.flexDirection = "column";
+  orderCtrl.style.gap = "4px";
+  orderCtrl.style.marginRight = "6px";
+
+  const upBtn = document.createElement("button");
+  upBtn.textContent = "↑";
+  upBtn.title = "上へ移動";
+  const downBtn = document.createElement("button");
+  downBtn.textContent = "↓";
+  downBtn.title = "下へ移動";
+
+  orderCtrl.appendChild(upBtn);
+  orderCtrl.appendChild(downBtn);
 
   const meta = document.createElement("div");
   meta.className = "file-meta";
@@ -202,6 +347,24 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
 
   if (!isExisting && data._fileObject) row._fileObject = data._fileObject;
 
+  // --- up / down handlers ---
+  upBtn.addEventListener("click", () => {
+    const prev = row.previousElementSibling;
+    if (!prev) return;
+    // If previous sibling is the control bar (or non-file-row), skip until a file-row
+    // but in this layout controlBar is separate, so simply swap adjacent .file-row
+    row.parentElement.insertBefore(row, prev);
+    // renumber dataset
+    renumberPreviewRows(previewArea);
+  });
+
+  downBtn.addEventListener("click", () => {
+    const next = row.nextElementSibling;
+    if (!next) return;
+    row.parentElement.insertBefore(next, row);
+    renumberPreviewRows(previewArea);
+  });
+
   // 更新
   updateBtn.addEventListener("click", async ()=>{
     if(!isExisting){ statusText.textContent="(未アップロード)"; return; }
@@ -214,7 +377,7 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
       });
       statusText.textContent = "更新済み";
       log(`📝 ${titleInput.value || docId} 更新`, logArea);
-    }catch(e){ statusText.textContent="更新失敗"; log(`❌ 更新失敗: ${e.message}`, logArea);}
+    }catch(e){ statusText.textContent="更新失敗"; log(`❌ 更新失敗: ${e.message}`, logArea); }
   });
 
   // 削除
@@ -231,10 +394,23 @@ function createImageRow(previewArea, roomId, docId, data, isExisting = false, lo
       }
       row.remove();
       log(`❌ ${data.title || docId} 削除`, logArea);
-    }catch(e){ log(`❌ 削除失敗: ${e.message}`, logArea);}
+    }catch(e){ log(`❌ 削除失敗: ${e.message}`, logArea); }
   });
 
+  // assemble row: orderCtrl, thumbnail, meta
+  row.appendChild(orderCtrl);
   row.appendChild(img);
   row.appendChild(meta);
   previewArea.appendChild(row);
 }
+
+// -------------------- 補助: previewArea の行を dataset.order に再番号付与 --------------------
+function renumberPreviewRows(previewArea) {
+  const rows = Array.from(previewArea.querySelectorAll(".file-row"));
+  rows.forEach((r, idx) => {
+    r.dataset.order = idx;
+  });
+}
+
+// エクスポート（必要なら外部から直接呼べるように）
+export { createImageRow, uploadFiles, handleFileSelect, handleThumbnailSelect, loadRoomImages };
