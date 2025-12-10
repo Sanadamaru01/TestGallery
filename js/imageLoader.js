@@ -1,10 +1,8 @@
 import * as THREE from 'three';
 import { createCaptionPanel } from './captionHelper.js';
-import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { app } from './firebaseInit.js';
 
 /**
- * ギャラリー用画像をロードして配置（Storage対応・ベースURL使用）
+ * ギャラリー用画像をロードして配置（公開バケット対応）
  * @param {THREE.Scene} scene
  * @param {Array} imageFiles - Firestoreから取得した画像情報配列 { file, title, caption, author }
  * @param {number} wallWidth
@@ -16,35 +14,16 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
   const MIN_MARGIN = 1.0;
   const MIN_SPACING = 0.5;
   const loader = new THREE.TextureLoader();
-  const storage = getStorage(app);
-  const imageBasePath = `rooms/${roomId}/`;
 
-  let baseURL = null;
-
-  // --- 1つ目のファイルからベースURLを取得 ---
-  if (imageFiles.length > 0) {
-    try {
-      const firstFile = imageFiles[0].file;
-      const firstURL = await getDownloadURL(storageRef(storage, imageBasePath + firstFile));
-      // URL の最後のファイル名部分を削除してベースURLを作る
-      baseURL = firstURL.replace(encodeURIComponent(firstFile), '');
-    } catch (e) {
-      console.warn(`[WARN] Failed to get base URL for ${roomId}: ${e.message}`);
-    }
-  }
-
-  // --- 各ファイルのURLを生成 ---
+  // 公開バケット用に URL を直接生成
   const imagesWithURL = imageFiles.map(img => {
-    let url = null;
-    if (baseURL) {
-      url = baseURL + encodeURIComponent(img.file);
-    }
+    const encodedPath = encodeURIComponent(`rooms/${roomId}/${img.file}`);
+    const url = `https://firebasestorage.googleapis.com/v0/b/gallery-us-ebe6e.appspot.com/o/${encodedPath}?alt=media`;
     return { ...img, downloadURL: url };
   });
 
   // 画像情報プリロードとサイズ計算
   const imageMetaList = await Promise.all(imagesWithURL.map(imgObj => {
-    if (!imgObj.downloadURL) return null;
     return new Promise(resolve => {
       const img = new Image();
       img.onload = () => {
@@ -67,6 +46,10 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
           resolve({ fw, fh, texture, src: imgObj.file, title: imgObj.title, caption: imgObj.caption });
         });
       };
+      img.onerror = () => {
+        console.warn(`Failed to load image: ${imgObj.file}`);
+        resolve(null);
+      };
       img.src = imgObj.downloadURL;
     });
   }));
@@ -78,7 +61,9 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
   return applyWallLayouts(scene, layoutPlan, validImageMetaList, wallWidth, wallHeight);
 }
 
-// 以下 applyWallLayouts と planWallLayouts は元のコードと同じ
+/**
+ * Three.js上に画像を貼る
+ */
 export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wallHeight) {
   const GALLERY_HEIGHT = wallHeight / 2;
   scene.userData.clickablePanels = scene.userData.clickablePanels || [];
@@ -139,6 +124,9 @@ export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wa
   return meshes;
 }
 
+/**
+ * 壁幅・画像サイズから貼り付けプランを作成（中央揃え）
+ */
 export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
   const wallNames = ['front', 'right', 'left'];
   const plans = [];
@@ -159,9 +147,14 @@ export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
 
     if (count === 0) continue;
 
-    const wallPlan = { wall: wallName, images: [] };
-    let centerOffset = -totalImageWidth / 2;
+    const totalSpacing = minSpacing * (count - 1);
+    const totalWidth = totalImageWidth;
+    const extraSpace = availableWidth - totalWidth;
 
+    const wallPlan = { wall: wallName, images: [] };
+
+    // 各写真の中心位置を中央揃えで計算
+    let centerOffset = -totalWidth / 2; // 壁中央を0にする
     for (let i = 0; i < count; i++) {
       const idx = imageIndex + i;
       const { fw, fh } = imageSizes[idx];
@@ -169,7 +162,12 @@ export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
       const offset = centerOffset + fw / 2;
       centerOffset += fw + minSpacing;
 
-      wallPlan.images.push({ index: idx, fw, fh, offset });
+      wallPlan.images.push({
+        index: idx,
+        fw,
+        fh,
+        offset: offset
+      });
     }
 
     plans.push(wallPlan);
