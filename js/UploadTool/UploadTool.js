@@ -90,7 +90,7 @@ async function onRoomChange() {
   roomTitleInput.value = data.roomTitle ?? "";
 
   // 画像ロード
-  await loadRoomImages(roomId, previewArea, logArea);
+  previewArea = await loadRoomImages(roomId, previewArea, logArea);
 
   // -------------------------------
   //  テクスチャ（旧方式）
