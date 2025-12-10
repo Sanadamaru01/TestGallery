@@ -79,7 +79,7 @@ async function onRoomChange() {
   const storage = getStorage(app);
   const thumbRef = storageRef(storage, `rooms/${roomId}/thumbnail.webp`);
   try { document.getElementById("thumbnailImg").src = await getDownloadURL(thumbRef); }
-  catch(e){ document.getElementById("thumbnailImg").src = "/noimage.jpg"; }
+  catch(e){ document.getElementById("thumbnailImg").src = "./noimage.jpg"; }
 }
 
 // -------------------------------
