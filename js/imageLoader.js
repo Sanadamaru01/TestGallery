@@ -4,7 +4,7 @@ import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstat
 import { app } from './firebaseInit.js';
 
 /**
- * ギャラリー用画像をロードして配置（Storage対応）
+ * ギャラリー用画像をロードして配置（Storage対応、URL一括取得版）
  * @param {THREE.Scene} scene
  * @param {Array} imageFiles - Firestoreから取得した画像情報配列 { file, title, caption, author }
  * @param {number} wallWidth
@@ -19,16 +19,22 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
   const storage = getStorage(app);
   const imageBasePath = `rooms/${roomId}/`;
 
-  // Firestoreの file 名から Storage downloadURL を取得
-  const imagesWithURL = await Promise.all(imageFiles.map(async img => {
-    try {
-      const url = await getDownloadURL(storageRef(storage, imageBasePath + img.file));
-      return { ...img, downloadURL: url };
-    } catch (e) {
-      console.warn(`Failed to load ${img.file} from Storage: ${e.message}`);
-      return { ...img, downloadURL: null };
-    }
-  }));
+  // --- 1回だけ Storage URL を取得 ---
+  let baseURL = '';
+  try {
+    // フォルダ自体の参照で1回だけ getDownloadURL
+    const ref = storageRef(storage, imageBasePath);
+    baseURL = await getDownloadURL(ref);
+    if (!baseURL.endsWith('/')) baseURL += '/';
+  } catch (e) {
+    console.warn(`[WARN] Failed to get base URL for ${roomId}: ${e.message}`);
+  }
+
+  // ファイル名から URL を組み立て
+  const imagesWithURL = imageFiles.map(img => {
+    const url = img.file.toLowerCase().includes('thumbnail') ? null : baseURL + img.file;
+    return { ...img, downloadURL: url };
+  });
 
   // 画像情報プリロードとサイズ計算
   const imageMetaList = await Promise.all(imagesWithURL.map(imgObj => {
@@ -66,7 +72,7 @@ export async function loadImages(scene, imageFiles, wallWidth, wallHeight, fixed
   return applyWallLayouts(scene, layoutPlan, validImageMetaList, wallWidth, wallHeight);
 }
 
-// Three.js上に画像を貼る
+// 以下、applyWallLayouts と planWallLayouts は元のまま
 export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wallHeight) {
   const GALLERY_HEIGHT = wallHeight / 2;
   scene.userData.clickablePanels = scene.userData.clickablePanels || [];
@@ -109,11 +115,9 @@ export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wa
       panel.position.add(offsetVec);
       scene.add(panel);
 
-      // クリック対象に追加
       panel.userData.size = { width: img.fw, height: img.fh };
       scene.userData.clickablePanels.push(panel);
 
-      // キャプションパネル生成
       if (meta.title && meta.caption) {
         const aspect = img.fw / img.fh;
         const captionPanel = createCaptionPanel(panel, meta.title, meta.caption, aspect);
@@ -127,7 +131,6 @@ export function applyWallLayouts(scene, layoutPlan, imageMetaList, wallWidth, wa
   return meshes;
 }
 
-// 壁幅・画像サイズから貼り付けプランを作成（中央揃え）
 export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
   const wallNames = ['front', 'right', 'left'];
   const plans = [];
@@ -153,22 +156,15 @@ export function planWallLayouts(imageSizes, wallWidth, minMargin, minSpacing) {
     const extraSpace = availableWidth - totalWidth;
 
     const wallPlan = { wall: wallName, images: [] };
+    let centerOffset = -totalWidth / 2;
 
-    // 各写真の中心位置を中央揃えで計算
-    let centerOffset = -totalWidth / 2; // 壁中央を0にする
     for (let i = 0; i < count; i++) {
       const idx = imageIndex + i;
       const { fw, fh } = imageSizes[idx];
-
       const offset = centerOffset + fw / 2;
       centerOffset += fw + minSpacing;
 
-      wallPlan.images.push({
-        index: idx,
-        fw,
-        fh,
-        offset: offset
-      });
+      wallPlan.images.push({ index: idx, fw, fh, offset });
     }
 
     plans.push(wallPlan);
