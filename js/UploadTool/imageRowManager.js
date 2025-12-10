@@ -1,134 +1,130 @@
 // imageRowManager.js
-import { getFirestore, collection, getDocs, doc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref as storageRef, getDownloadURL, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { app } from "../firebaseInit.js";
 import { log } from './utils.js';
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getStorage, ref as storageRef, getDownloadURL, uploadBytes } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import { app } from '../firebaseInit.js';
 
 const db = getFirestore(app);
 const storage = getStorage(app);
 
 /**
- * ルームの画像を読み込み、プレビューエリアに表示
+ * ルームの画像をロードして previewArea に表示
  * @param {string} roomId 
  * @param {HTMLElement} previewArea 
  * @param {HTMLElement} logArea 
+ * @returns {HTMLElement} previewArea
  */
 export async function loadRoomImages(roomId, previewArea, logArea) {
-  if (!roomId) return previewArea;
-
-  // previewArea をリセット
-  const newArea = previewArea.cloneNode(false);
-  previewArea.parentNode.replaceChild(newArea, previewArea);
-  previewArea = newArea;
   previewArea.innerHTML = "";
 
-  // images サブコレクション取得
-  const imagesSnap = await getDocs(collection(db, "rooms", roomId, "images"));
+  try {
+    const imagesSnap = await getDocs(collection(db, `rooms/${roomId}/images`));
+    const images = [];
 
-  for (const docSnap of imagesSnap.docs) {
-    const d = docSnap.data();
+    imagesSnap.forEach(d => {
+      const data = d.data();
+      images.push({
+        id: d.id,
+        title: data.title ?? "",
+        caption: data.caption ?? "",
+        author: data.author ?? "",
+        file: data.file
+      });
+    });
 
-    const row = document.createElement("div");
-    row.className = "image-row";
+    for (const d of images) {
+      const img = document.createElement("img");
+      img.className = "preview-img";
 
-    // サムネイル img
-    const img = document.createElement("img");
-    img.className = "preview-thumb";
+      try {
+        // ルームIDを含めた Storage パス
+        const filePath = `rooms/${roomId}/${d.file}`;
+        const url = await getDownloadURL(storageRef(storage, filePath));
+        img.src = url;
+      } catch (e) {
+        console.warn("[WARN] 画像取得失敗:", d.file, e);
+        img.src = "/noimage.jpg";  // ローカルに noimage.jpg を配置
+      }
 
-    try {
-      const url = await getDownloadURL(storageRef(storage, d.file));
-      img.src = url;
-    } catch (e) {
-      console.warn("[WARN] 画像取得失敗:", d.file, e);
-      img.src = "/noimage.webp";
+      img.title = d.title || d.file;
+      previewArea.appendChild(img);
     }
 
-    row.appendChild(img);
-
-    // タイトル
-    const title = document.createElement("input");
-    title.type = "text";
-    title.value = d.title ?? "";
-    title.placeholder = "タイトル";
-    row.appendChild(title);
-
-    // キャプション
-    const caption = document.createElement("input");
-    caption.type = "text";
-    caption.value = d.caption ?? "";
-    caption.placeholder = "キャプション";
-    row.appendChild(caption);
-
-    // 作者
-    const author = document.createElement("input");
-    author.type = "text";
-    author.value = d.author ?? "";
-    author.placeholder = "作者";
-    row.appendChild(author);
-
-    // 並び替え・削除ボタンは既存の CSS/JS に任せる
-    previewArea.appendChild(row);
+    log(`[INFO] ルーム画像読み込み完了: ${images.length} 枚`, logArea);
+  } catch (e) {
+    console.error("[ERROR] loadRoomImages", e);
   }
 
-  log(`[INFO] ルーム画像読み込み完了: ${imagesSnap.docs.length} 枚`, logArea);
   return previewArea;
 }
 
 /**
- * ファイル選択時の処理
+ * ファイル選択ハンドラ
+ * @param {HTMLInputElement} fileInput 
+ * @param {HTMLElement} previewArea 
+ * @param {HTMLElement} logArea 
  */
 export function handleFileSelect(fileInput, previewArea, logArea) {
   fileInput.addEventListener("change", () => {
     const files = fileInput.files;
-    for (const file of files) {
-      const row = document.createElement("div");
-      row.className = "image-row";
+    if (!files.length) return;
 
+    previewArea.innerHTML = "";
+
+    Array.from(files).forEach(file => {
       const img = document.createElement("img");
-      img.className = "preview-thumb";
+      img.className = "preview-img";
       img.src = URL.createObjectURL(file);
+      img.title = file.name;
+      previewArea.appendChild(img);
+    });
 
-      row.appendChild(img);
-      previewArea.appendChild(row);
-    }
-    log(`[INFO] ファイル選択: ${files.length} 枚`, logArea);
+    log(`[INFO] ${files.length} ファイル選択`, logArea);
   });
 }
 
 /**
- * 画像アップロード
+ * ファイルアップロード
+ * @param {HTMLElement} previewArea 
+ * @param {string} roomId 
+ * @param {HTMLElement} logArea 
  */
 export async function uploadFiles(previewArea, roomId, logArea) {
-  const rows = previewArea.querySelectorAll(".image-row");
-  for (const row of rows) {
-    const img = row.querySelector("img");
-    if (!img.src.startsWith("blob:")) continue; // Storage からの既存画像はスキップ
+  const files = previewArea.querySelectorAll("img");
+  if (!files.length) return;
 
-    const file = row.querySelector("input[type=file]")?.files[0];
+  for (const img of files) {
+    const file = img.fileObj;  // img.fileObj に File を保持しておくこと
     if (!file) continue;
 
     const path = `rooms/${roomId}/${file.name}`;
     const storageReference = storageRef(storage, path);
-    await uploadBytes(storageReference, file);
 
-    // Firestore に追加
-    await updateDoc(doc(db, "rooms", roomId, "images", file.name), {
-      file: path,
-      title: row.querySelector("input[placeholder='タイトル']")?.value ?? "",
-      caption: row.querySelector("input[placeholder='キャプション']")?.value ?? "",
-      author: row.querySelector("input[placeholder='作者']")?.value ?? "",
-      updatedAt: serverTimestamp()
-    });
+    try {
+      await uploadBytes(storageReference, file);
+      log(`[INFO] アップロード成功: ${file.name}`, logArea);
+    } catch (e) {
+      console.error(`[ERROR] アップロード失敗: ${file.name}`, e);
+      log(`[ERROR] アップロード失敗: ${file.name}`, logArea);
+    }
   }
-  log(`[INFO] 画像アップロード完了`, logArea);
 }
 
 /**
- * サムネイル選択時の処理
+ * サムネイルファイル選択処理
+ * @param {File} file 
+ * @param {string} roomId 
+ * @param {HTMLElement} logArea 
  */
 export async function handleThumbnailSelect(file, roomId, logArea) {
   const path = `rooms/${roomId}/thumbnail.webp`;
   const storageReference = storageRef(storage, path);
-  await uploadBytes(storageReference, file);
-  log(`[INFO] サムネイルアップロード完了: ${file.name}`, logArea);
+
+  try {
+    await uploadBytes(storageReference, file);
+    log(`[INFO] サムネイルアップロード成功: ${file.name}`, logArea);
+  } catch (e) {
+    console.error(`[ERROR] サムネイルアップロード失敗: ${file.name}`, e);
+    log(`[ERROR] サムネイルアップロード失敗: ${file.name}`, logArea);
+  }
 }
