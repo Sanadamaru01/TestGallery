@@ -13,6 +13,13 @@ import { app } from './firebaseInit.js';
  * @param {Object} config - 部屋設定（wallWidth, wallHeight, fixedLongSide, backgroundColor など）
  */
 export async function initGallery(roomId, imageFiles, config) {
+    // 🔥 画像を Firestore の order で並び替える
+  imageFiles.sort((a, b) => {
+    const ao = a.order ?? Number.MAX_SAFE_INTEGER;
+    const bo = b.order ?? Number.MAX_SAFE_INTEGER;
+    return ao - bo;
+  });
+  
   const { wallWidth: WALL_WIDTH, wallHeight: WALL_HEIGHT, fixedLongSide, backgroundColor } = config;
 
   const titleBar = document.getElementById('titleBar');
