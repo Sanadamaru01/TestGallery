@@ -99,6 +99,11 @@ async function createRoomCard(roomId, config, isOpen) {
   thumb.src = imgURL;
   thumb.onerror = () => { thumb.src = noImagePath; };
 
+  // --- ★ サムネイル枠を追加（ここが今回の修正点） ---
+  const thumbWrapper = document.createElement("div");
+  thumbWrapper.className = "room-thumb-wrapper";
+  thumbWrapper.appendChild(thumb);
+
   // --- 情報ブロック ---
   const info = document.createElement('div');
   info.className = 'room-info';
@@ -118,7 +123,7 @@ async function createRoomCard(roomId, config, isOpen) {
 
   // --- DOM 組み立て ---
   info.append(title, announcement, dates, status);
-  link.append(thumb, info);
+  link.append(thumbWrapper, info);
   container.appendChild(link);
 
   return container;
