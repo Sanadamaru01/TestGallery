@@ -38,11 +38,10 @@
     }
 
     .room-card img {
-      width: 120px;
-      height: 90px;
-      object-fit: cover;
-      border-radius: 4px;
-      flex-shrink: 0;
+      height: 90px;      /* 高さ固定 */
+      width: auto;       /* 元画像の比率で幅を決定 */
+      max-width: 120px;  /* 幅が120pxを超えないよう制限 */
+      display: block;    /* 余白を消す */
     }
 
     .room-card a {
