@@ -30,25 +30,24 @@ async function renderAllRooms() {
     const snap = await getDocs(collection(db, "rooms"));
     roomList.textContent = "";
 
-    // Firestore ドキュメントを配列に変換
+    // ドキュメントを配列に変換してルームIDでソート
     const rooms = snap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
-    
-    // ルームIDで昇順にソート
     rooms.sort((a, b) => a.id.localeCompare(b.id));
-    
+
     for (const room of rooms) {
       const roomId = room.id;
       const data = room.data;
-    
+
       const config = {
         roomTitle: data.roomTitle ?? "(no title)",
+        announcement: data.announcement ?? "",
         startDate: data.startDate ? toDateString(data.startDate) : "",
         endDate: data.endDate ? toDateString(data.endDate) : ""
       };
-    
+
       const isOpen = checkOpen(config.startDate, config.endDate);
       const card = await createRoomCard(roomId, config, isOpen);
-    
+
       roomList.appendChild(card);
     }
 
@@ -82,7 +81,7 @@ async function createRoomCard(roomId, config, isOpen) {
 
   // --- <a> リンク ---
   const link = document.createElement('a');
-  link.href = `./room.html?roomId=${roomId}`; // トップ直下に変更
+  link.href = `./room.html?roomId=${roomId}`;
   if (!isOpen) link.classList.add('closed');
 
   // --- サムネイル画像（Storage 参照） ---
@@ -107,6 +106,10 @@ async function createRoomCard(roomId, config, isOpen) {
   const title = document.createElement('h3');
   title.textContent = config.roomTitle;
 
+  const announcement = document.createElement('p');
+  announcement.textContent = config.announcement;
+  announcement.style.fontWeight = 'bold';
+
   const dates = document.createElement('p');
   dates.textContent = `${config.startDate} ～ ${config.endDate}`;
 
@@ -114,7 +117,7 @@ async function createRoomCard(roomId, config, isOpen) {
   status.textContent = isOpen ? '🔓 公開中' : '🔒 非公開';
 
   // --- DOM 組み立て ---
-  info.append(title, dates, status);
+  info.append(title, announcement, dates, status);
   link.append(thumb, info);
   container.appendChild(link);
 
