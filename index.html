@@ -37,11 +37,23 @@
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
 
+    /* サムネイル枠 */
+    .room-thumb-wrapper {
+      width: 160px;        /* 枠の幅固定 */
+      height: 120px;       /* 高さ固定 */
+      display: flex;
+      justify-content: center; /* 横中央 */
+      align-items: center;     /* 縦中央 */
+      overflow: hidden;        /* はみ出た部分は切る */
+      flex-shrink: 0;
+      border-radius: 4px;
+      background-color: #eee;
+    }
+
     .room-card img {
       height: 120px;      /* 高さ固定 */
-      width: auto;       /* 元画像の比率で幅を決定 */
-      max-width: 160px;  /* 幅が120pxを超えないよう制限 */
-      display: block;    /* 余白を消す */
+      width: auto;        /* 比率を維持 */
+      display: block;
     }
 
     .room-card a {
@@ -50,6 +62,7 @@
       display: flex;
       align-items: center;
       width: 100%;
+      gap: 1rem;
     }
 
     .room-info {
@@ -81,6 +94,11 @@
       .room-card a {
         flex-direction: column;
         align-items: flex-start;
+      }
+
+      .room-thumb-wrapper {
+        width: 100%;
+        height: auto;
       }
 
       .room-card img {
