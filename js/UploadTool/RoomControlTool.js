@@ -30,6 +30,7 @@ const titleInput = document.getElementById("roomTitleInput");
 const startDateInput = document.getElementById("startDateInput");
 const openDateInput = document.getElementById("openDateInput");
 const endDateInput = document.getElementById("endDateInput");
+const wallWidthInput = document.getElementById("wallWidthInput");
 
 const saveRoomBtn = document.getElementById("saveRoomBtn");
 const resetRoomBtn = document.getElementById("resetRoomBtn");
@@ -107,6 +108,9 @@ async function selectRoom(roomId, cardElement) {
   startDateInput.value = data.startDate ? toDateInputValue(data.startDate.toDate()) : "";
   openDateInput.value = data.openDate ? toDateInputValue(data.openDate.toDate()) : "";
   endDateInput.value = data.endDate ? toDateInputValue(data.endDate.toDate()) : "";
+
+  wallWidthInput.value = data.wallWidth ?? 10;
+
 }
 
 // timestamp → YYYY-MM-DD
@@ -132,9 +136,7 @@ saveRoomBtn.addEventListener("click", async () => {
     startDate: startDateInput.value ? parseLocalDate(startDateInput.value) : null,
     endDate: endDateInput.value ? parseLocalDate(endDateInput.value) : null,
     openDate: openDateInput.value ? parseLocalDate(openDateInput.value) : null,
-    //startDate: startDateInput.value ? new Date(startDateInput.value) : null,
-    //openDate: openDateInput.value ? new Date(openDateInput.value) : null,
-    //endDate: endDateInput.value ? new Date(endDateInput.value) : null
+    wallWidth: Number(wallWidthInput.value),
   });
 
   alert("保存しました");
