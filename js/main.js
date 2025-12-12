@@ -54,7 +54,6 @@ export async function initGalleryFromRoomId(roomId) {
     if (!allowed) return;
 
     const title = raw.roomTitle || 'Untitled Room';
-    document.getElementById('titleText').textContent = title;
     document.title = title;
     //console.log("[DEBUG] room title set:", title);
 
@@ -94,4 +93,5 @@ if (!roomId) {
 } else {
   //console.log("[DEBUG] initGalleryFromRoomId will be executed with:", roomId);
   initGalleryFromRoomId(roomId);
+  document.getElementById('titleText').textContent = title;
 }
