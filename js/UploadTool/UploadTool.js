@@ -20,7 +20,7 @@ import {
   listAll
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-import { app } from "../../firebaseInit.js"; // HTML の <script> からの相対を想定
+import { app } from "../firebaseInit.js"; // HTML の <script> からの相対を想定
 
 const db = getFirestore(app);
 const storage = getStorage(app);
