@@ -114,6 +114,13 @@ export async function initGallery(roomId, imageFiles, config) {
   }
   window.addEventListener('resize', () => setTimeout(onWindowResize, 100));
   onWindowResize();
+    
+  let firstRenderDone = false;
+  let onFirstRenderCallback = null;
+    
+  export function setOnFirstRender(callback) {
+    onFirstRenderCallback = callback;
+  }
 
   // --- アニメーションループ ---
   function animate() {
@@ -133,6 +140,13 @@ export async function initGallery(roomId, imageFiles, config) {
     light.target.position.copy(controls.target);
 
     renderer.render(scene, camera);
+
+    if (!firstRenderDone) {
+      firstRenderDone = true;
+      if (onFirstRenderCallback) {
+        onFirstRenderCallback();
+      }
+    }
   }
 
   // --- クリック処理 ---
