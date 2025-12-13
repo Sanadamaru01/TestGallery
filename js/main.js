@@ -76,7 +76,6 @@ export async function initGalleryFromRoomId(roomId) {
     //console.log("[DEBUG] initializing gallery...");
     // 改修：roomId と images のみ渡す
     galleryModule.initGallery(roomId, images, config);
-    document.getElementById('titleText').textContent = title;
 
     //console.log("[DEBUG] setting up room links...");
     await roomLinksModule.setupRoomLinks();
