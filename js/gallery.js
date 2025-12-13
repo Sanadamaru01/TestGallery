@@ -6,6 +6,11 @@ import { createCaptionPanel } from './captionHelper.js';
 import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import { app } from './firebaseInit.js';
 
+let firstRenderDone = false;
+let onFirstRenderCallback = null;
+export function setOnFirstRender(callback) {
+  onFirstRenderCallback = callback;
+}
 /**
  * ギャラリー初期化
  * @param {string} roomId - 部屋ID
@@ -115,13 +120,6 @@ export async function initGallery(roomId, imageFiles, config) {
   window.addEventListener('resize', () => setTimeout(onWindowResize, 100));
   onWindowResize();
     
-  let firstRenderDone = false;
-  let onFirstRenderCallback = null;
-    
-  export function setOnFirstRender(callback) {
-    onFirstRenderCallback = callback;
-  }
-
   // --- アニメーションループ ---
   function animate() {
     requestAnimationFrame(animate);
