@@ -18,7 +18,9 @@ import {
 
 import {
   getAuth,
-  onAuthStateChanged
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import { app } from "../firebaseInit.js";
@@ -27,7 +29,9 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
+// -----------------------------
 // DOM
+// -----------------------------
 const roomList = document.getElementById("roomList");
 const editArea = document.getElementById("editArea");
 
@@ -39,15 +43,27 @@ const endDateInput = document.getElementById("endDateInput");
 const saveRoomBtn = document.getElementById("saveRoomBtn");
 const resetRoomBtn = document.getElementById("resetRoomBtn");
 
+// ログインボタン（動的生成）
+const loginBtn = document.createElement("button");
+loginBtn.textContent = "Googleでログイン";
+loginBtn.className = "btn";
+loginBtn.style.marginBottom = "20px";
+
 let selectedRoomId = null;
 
 // -----------------------------
-// admin 判定付き初期化
+// 初期化（admin 判定付き）
 // -----------------------------
 window.addEventListener("DOMContentLoaded", () => {
+  editArea.style.display = "none";
+  roomList.innerHTML = "";
+
   onAuthStateChanged(auth, async (user) => {
+    roomList.innerHTML = "";
+    editArea.style.display = "none";
+
     if (!user) {
-      alert("管理者ログインが必要です");
+      showLoginButton();
       return;
     }
 
@@ -56,18 +72,41 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (!userSnap.exists()) {
       alert("ユーザー情報が存在しません");
+      showLoginButton();
       return;
     }
 
     if (userSnap.data().role !== "admin") {
       alert("管理者権限がありません");
+      showLoginButton();
       return;
     }
 
     // admin のみここに到達
+    removeLoginButton();
     await loadRoomList();
   });
 });
+
+// -----------------------------
+// Google ログイン
+// -----------------------------
+loginBtn.addEventListener("click", async () => {
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(auth, provider);
+});
+
+function showLoginButton() {
+  if (!roomList.contains(loginBtn)) {
+    roomList.appendChild(loginBtn);
+  }
+}
+
+function removeLoginButton() {
+  if (roomList.contains(loginBtn)) {
+    roomList.removeChild(loginBtn);
+  }
+}
 
 // -----------------------------
 // ルーム一覧の読み込み
@@ -87,7 +126,6 @@ async function loadRoomList() {
     const img = document.createElement("img");
     img.className = "thumb";
 
-    // サムネイル読み込み
     const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
     getDownloadURL(thumbRef)
       .then(url => img.src = url)
@@ -103,7 +141,6 @@ async function loadRoomList() {
     card.appendChild(img);
     card.appendChild(info);
 
-    // クリックで選択
     card.addEventListener("click", () => selectRoom(roomId, card));
 
     roomList.appendChild(card);
@@ -116,26 +153,20 @@ async function loadRoomList() {
 async function selectRoom(roomId, cardElement) {
   selectedRoomId = roomId;
 
-  // UI の選択ハイライト
   [...roomList.children].forEach(c => c.classList.remove("selected"));
   cardElement.classList.add("selected");
 
-  // 設定UIを表示
   editArea.style.display = "block";
 
-  // Firestore から読み込み
   const snap = await getDoc(doc(db, "rooms", roomId));
   const data = snap.data();
 
   titleInput.value = data.roomTitle ?? "";
-
-  // 日付反映（timestamp → YYYY-MM-DD）
   startDateInput.value = data.startDate ? toDateInputValue(data.startDate.toDate()) : "";
   openDateInput.value = data.openDate ? toDateInputValue(data.openDate.toDate()) : "";
   endDateInput.value = data.endDate ? toDateInputValue(data.endDate.toDate()) : "";
 }
 
-// timestamp → YYYY-MM-DD
 function toDateInputValue(dateObj) {
   return dateObj.toISOString().split("T")[0];
 }
@@ -151,9 +182,7 @@ function parseLocalDate(yyyyMMdd) {
 saveRoomBtn.addEventListener("click", async () => {
   if (!selectedRoomId) return;
 
-  const refRoom = doc(db, "rooms", selectedRoomId);
-
-  await updateDoc(refRoom, {
+  await updateDoc(doc(db, "rooms", selectedRoomId), {
     roomTitle: titleInput.value,
     startDate: startDateInput.value ? parseLocalDate(startDateInput.value) : null,
     openDate: openDateInput.value ? parseLocalDate(openDateInput.value) : null,
@@ -175,30 +204,23 @@ resetRoomBtn.addEventListener("click", async () => {
 
   const roomId = selectedRoomId;
 
-  // images サブコレクション削除
   const imagesPath = collection(db, `rooms/${roomId}/images`);
   const snap = await getDocs(imagesPath);
-
   for (const docSnap of snap.docs) {
     await deleteDoc(doc(db, `rooms/${roomId}/images`, docSnap.id));
   }
 
-  // Storage の画像削除
   const roomStorageDir = ref(storage, `rooms/${roomId}`);
   try {
     const list = await listAll(roomStorageDir);
     for (const fileRef of list.items) {
       await deleteObject(fileRef);
     }
-  } catch (e) {
-    console.warn("Storage 画像なし");
-  }
+  } catch {}
 
-  // サムネイル削除
   const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
   deleteObject(thumbRef).catch(() => {});
 
-  // Firestore の部屋設定を初期値へ
   await updateDoc(doc(db, "rooms", roomId), {
     wallWidth: 10,
     wallHeight: 5,
