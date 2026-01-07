@@ -93,7 +93,12 @@ window.addEventListener("DOMContentLoaded", () => {
 // -----------------------------
 loginBtn.addEventListener("click", async () => {
   const provider = new GoogleAuthProvider();
-  await signInWithPopup(auth, provider);
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (e) {
+    console.error("Googleログイン失敗", e);
+    alert(e.message);
+  }
 });
 
 function showLoginButton() {
