@@ -4,7 +4,6 @@ import {
   getDocs,
   doc,
   getDoc,
-  setDoc,
   updateDoc,
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -17,10 +16,16 @@ import {
   listAll
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 import { app } from "../firebaseInit.js";
 
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app);
 
 // DOM
 const roomList = document.getElementById("roomList");
@@ -30,7 +35,6 @@ const titleInput = document.getElementById("roomTitleInput");
 const startDateInput = document.getElementById("startDateInput");
 const openDateInput = document.getElementById("openDateInput");
 const endDateInput = document.getElementById("endDateInput");
-const wallWidthInput = document.getElementById("wallWidthInput");
 
 const saveRoomBtn = document.getElementById("saveRoomBtn");
 const resetRoomBtn = document.getElementById("resetRoomBtn");
@@ -38,10 +42,31 @@ const resetRoomBtn = document.getElementById("resetRoomBtn");
 let selectedRoomId = null;
 
 // -----------------------------
-// 初期ロード
+// admin 判定付き初期化
 // -----------------------------
-window.addEventListener("DOMContentLoaded", async () => {
-  await loadRoomList();
+window.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      alert("管理者ログインが必要です");
+      return;
+    }
+
+    const userRef = doc(db, "users", user.uid);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      alert("ユーザー情報が存在しません");
+      return;
+    }
+
+    if (userSnap.data().role !== "admin") {
+      alert("管理者権限がありません");
+      return;
+    }
+
+    // admin のみここに到達
+    await loadRoomList();
+  });
 });
 
 // -----------------------------
@@ -108,9 +133,6 @@ async function selectRoom(roomId, cardElement) {
   startDateInput.value = data.startDate ? toDateInputValue(data.startDate.toDate()) : "";
   openDateInput.value = data.openDate ? toDateInputValue(data.openDate.toDate()) : "";
   endDateInput.value = data.endDate ? toDateInputValue(data.endDate.toDate()) : "";
-
-  wallWidthInput.value = data.wallWidth ?? 10;
-
 }
 
 // timestamp → YYYY-MM-DD
@@ -120,7 +142,7 @@ function toDateInputValue(dateObj) {
 
 function parseLocalDate(yyyyMMdd) {
   const [y, m, d] = yyyyMMdd.split("-").map(Number);
-  return new Date(y, m - 1, d, 0, 0, 0);  // ← これならローカルの00:00
+  return new Date(y, m - 1, d, 0, 0, 0);
 }
 
 // -----------------------------
@@ -134,13 +156,12 @@ saveRoomBtn.addEventListener("click", async () => {
   await updateDoc(refRoom, {
     roomTitle: titleInput.value,
     startDate: startDateInput.value ? parseLocalDate(startDateInput.value) : null,
-    endDate: endDateInput.value ? parseLocalDate(endDateInput.value) : null,
     openDate: openDateInput.value ? parseLocalDate(openDateInput.value) : null,
-    wallWidth: Number(wallWidthInput.value),
+    endDate: endDateInput.value ? parseLocalDate(endDateInput.value) : null
   });
 
   alert("保存しました");
-  await loadRoomList(); // タイトル変更の反映
+  await loadRoomList();
 });
 
 // -----------------------------
