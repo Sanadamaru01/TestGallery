@@ -50,6 +50,7 @@ loginBtn.className = "btn";
 loginBtn.style.marginBottom = "20px";
 
 let selectedRoomId = null;
+let currentUserUid = null;
 
 // -----------------------------
 // 初期化（admin 判定付き）
@@ -63,9 +64,16 @@ window.addEventListener("DOMContentLoaded", () => {
     editArea.style.display = "none";
 
     if (!user) {
+      currentUserUid = null;
       showLoginButton();
       return;
     }
+
+    // 🔒 同じユーザーなら何もしない（防御）
+    if (user.uid === currentUserUid) {
+      return;
+    }
+    currentUserUid = user.uid;
 
     const userRef = doc(db, "users", user.uid);
     const userSnap = await getDoc(userRef);
@@ -81,8 +89,7 @@ window.addEventListener("DOMContentLoaded", () => {
       showLoginButton();
       return;
     }
-
-    // admin のみここに到達
+  
     removeLoginButton();
     await loadRoomList();
   });
