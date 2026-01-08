@@ -217,7 +217,8 @@ resetRoomBtn.addEventListener("click", async () => {
     await deleteDoc(doc(db, `rooms/${roomId}/images`, docSnap.id));
   }
 
-  const roomStorageDir = ref(storage, `rooms/${roomId}`);
+  //const roomStorageDir = ref(storage, `rooms/${roomId}`);
+  const roomStorageDir = ref(storage, `gs://gallery-us-ebe6e.appspot.com/rooms/${roomId}`);
   try {
     const list = await listAll(roomStorageDir);
     for (const fileRef of list.items) {
@@ -225,7 +226,8 @@ resetRoomBtn.addEventListener("click", async () => {
     }
   } catch {}
 
-  const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
+  //const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
+  const thumbRef = ref(storage, `gs://gallery-us-ebe6e.appspot.com/roomThumbnails/${roomId}.webp`);
   deleteObject(thumbRef).catch(() => {});
 
   await updateDoc(doc(db, "rooms", roomId), {
