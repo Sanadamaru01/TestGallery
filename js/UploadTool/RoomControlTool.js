@@ -131,7 +131,9 @@ async function loadRoomList() {
     const img = document.createElement("img");
     img.className = "thumb";
 
-    const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
+    //const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
+    const thumbRef = ref(storage,`gs://gallery-us-ebe6e.appspot.com/roomThumbnails/${roomId}.webp`);
+
     getDownloadURL(thumbRef)
       .then(url => img.src = url)
       .catch(() => img.src = "./noimage.jpg");
