@@ -8,7 +8,8 @@ const firebaseConfig = {
   apiKey: "AIzaSyAIhkMNJI2ld9PXD7SO8H0hQ7kKGg9wWnw",
   authDomain: "gallery-us-ebe6e.firebaseapp.com",
   projectId: "gallery-us-ebe6e",
-  storageBucket: "gallery-us-ebe6e.firebasestorage.app",
+//  storageBucket: "gallery-us-ebe6e.firebasestorage.app",
+  storageBucket: "gallery-us-ebe6e.appspot.com",
   messagingSenderId: "783129386319",
   appId: "1:783129386319:web:b11f5182b082c7032af93a"
 };
