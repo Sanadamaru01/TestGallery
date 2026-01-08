@@ -138,12 +138,21 @@ async function loadRoomList() {
     const img = document.createElement("img");
     img.className = "thumb";
 
-    const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
-    //const thumbRef = ref(storage,`gs://gallery-us-ebe6e.appspot.com/roomThumbnails/${roomId}.webp`);
-console.log(thumbRef.fullPath);
+    // ★ V2 と同じパスに統一
+    const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.webp`);
+    console.log("[THUMB]", thumbRef.fullPath);
+
     getDownloadURL(thumbRef)
-      .then(url => img.src = url)
-      .catch(() => img.src = "./noimage.jpg");
+      .then(url => {
+        img.src = url;
+      })
+      .catch(() => {
+        img.src = "./noimage.jpg";
+      });
+
+    img.onerror = () => {
+      img.src = "./noimage.jpg";
+    };
 
     const info = document.createElement("div");
     info.className = "room-info";
@@ -154,7 +163,6 @@ console.log(thumbRef.fullPath);
 
     card.appendChild(img);
     card.appendChild(info);
-
     card.addEventListener("click", () => selectRoom(roomId, card));
 
     roomList.appendChild(card);
@@ -225,7 +233,6 @@ resetRoomBtn.addEventListener("click", async () => {
   }
 
   const roomStorageDir = ref(storage, `rooms/${roomId}`);
-  //const roomStorageDir = ref(storage, `gs://gallery-us-ebe6e.appspot.com/rooms/${roomId}`);
   try {
     const list = await listAll(roomStorageDir);
     for (const fileRef of list.items) {
@@ -233,8 +240,7 @@ resetRoomBtn.addEventListener("click", async () => {
     }
   } catch {}
 
-  const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
-  //const thumbRef = ref(storage, `gs://gallery-us-ebe6e.appspot.com/roomThumbnails/${roomId}.webp`);
+  const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.webp`);
   deleteObject(thumbRef).catch(() => {});
 
   await updateDoc(doc(db, "rooms", roomId), {
