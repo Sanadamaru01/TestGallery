@@ -133,7 +133,7 @@ async function loadRoomList() {
 
     const thumbRef = ref(storage, `roomThumbnails/${roomId}.webp`);
     //const thumbRef = ref(storage,`gs://gallery-us-ebe6e.appspot.com/roomThumbnails/${roomId}.webp`);
-
+console.log(thumbRef.fullPath);
     getDownloadURL(thumbRef)
       .then(url => img.src = url)
       .catch(() => img.src = "./noimage.jpg");
