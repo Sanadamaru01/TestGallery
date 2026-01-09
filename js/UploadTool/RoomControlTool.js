@@ -11,7 +11,6 @@ import {
 import {
   getStorage,
   ref,
-  getDownloadURL,
   deleteObject,
   listAll
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -43,7 +42,7 @@ const endDateInput = document.getElementById("endDateInput");
 const saveRoomBtn = document.getElementById("saveRoomBtn");
 const resetRoomBtn = document.getElementById("resetRoomBtn");
 
-// ログインボタン（動的生成）
+// ログインボタン
 const loginBtn = document.createElement("button");
 loginBtn.textContent = "Googleでログイン";
 loginBtn.className = "btn";
@@ -69,27 +68,16 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 🔒 同じユーザーなら何もしない（防御）
-    if (user.uid === currentUserUid) {
-      return;
-    }
+    if (user.uid === currentUserUid) return;
     currentUserUid = user.uid;
 
-    const userRef = doc(db, "users", user.uid);
-    const userSnap = await getDoc(userRef);
-
-    if (!userSnap.exists()) {
-      alert("ユーザー情報が存在しません");
-      showLoginButton();
-      return;
-    }
-
-    if (userSnap.data().role !== "admin") {
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (!userSnap.exists() || userSnap.data().role !== "admin") {
       alert("管理者権限がありません");
       showLoginButton();
       return;
     }
-  
+
     removeLoginButton();
     await loadRoomList();
   });
@@ -99,11 +87,9 @@ window.addEventListener("DOMContentLoaded", () => {
 // Google ログイン
 // -----------------------------
 loginBtn.addEventListener("click", async () => {
-  const provider = new GoogleAuthProvider();
   try {
-    await signInWithPopup(auth, provider);
+    await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (e) {
-    console.error("Googleログイン失敗", e);
     alert(e.message);
   }
 });
@@ -138,17 +124,10 @@ async function loadRoomList() {
     const img = document.createElement("img");
     img.className = "thumb";
 
-    // ★ V2 と同じパスに統一
-    const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.webp`);
-    console.log("[THUMB]", thumbRef.fullPath);
-
-    getDownloadURL(thumbRef)
-      .then(url => {
-        img.src = url;
-      })
-      .catch(() => {
-        img.src = "./noimage.jpg";
-      });
+    // ★ Storage SDK を使わず、直接 URL で取得（portal.js と同じ）
+    const encodedPath = encodeURIComponent(`rooms/${roomId}/thumbnail.webp`);
+    img.src =
+      `https://firebasestorage.googleapis.com/v0/b/gallery-us-ebe6e.appspot.com/o/${encodedPath}?alt=media`;
 
     img.onerror = () => {
       img.src = "./noimage.jpg";
@@ -221,27 +200,21 @@ saveRoomBtn.addEventListener("click", async () => {
 resetRoomBtn.addEventListener("click", async () => {
   if (!selectedRoomId) return;
 
-  const ok = confirm("本当にこのルームを初期化しますか？\n画像データは全削除されます。");
-  if (!ok) return;
+  if (!confirm("本当にこのルームを初期化しますか？\n画像データは全削除されます。")) return;
 
   const roomId = selectedRoomId;
 
-  const imagesPath = collection(db, `rooms/${roomId}/images`);
-  const snap = await getDocs(imagesPath);
-  for (const docSnap of snap.docs) {
-    await deleteDoc(doc(db, `rooms/${roomId}/images`, docSnap.id));
+  const imagesSnap = await getDocs(collection(db, `rooms/${roomId}/images`));
+  for (const d of imagesSnap.docs) {
+    await deleteDoc(d.ref);
   }
 
-  const roomStorageDir = ref(storage, `rooms/${roomId}`);
   try {
-    const list = await listAll(roomStorageDir);
-    for (const fileRef of list.items) {
-      await deleteObject(fileRef);
+    const list = await listAll(ref(storage, `rooms/${roomId}`));
+    for (const f of list.items) {
+      await deleteObject(f);
     }
   } catch {}
-
-  const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.webp`);
-  deleteObject(thumbRef).catch(() => {});
 
   await updateDoc(doc(db, "rooms", roomId), {
     wallWidth: 10,
