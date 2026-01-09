@@ -11,6 +11,7 @@ import {
 import {
   getStorage,
   ref,
+  getDownloadURL,          // ★ 追加
   deleteObject,
   listAll
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -124,10 +125,16 @@ async function loadRoomList() {
     const img = document.createElement("img");
     img.className = "thumb";
 
-    // ★ Storage SDK を使わず、直接 URL で取得（portal.js と同じ）
-    const encodedPath = encodeURIComponent(`rooms/${roomId}/thumbnail.webp`);
-    img.src =
-      `https://firebasestorage.googleapis.com/v0/b/gallery-us-ebe6e.appspot.com/o/${encodedPath}?alt=media`;
+    // ★ 修正点：
+    // 直 URL 廃止 → Storage SDK + getDownloadURL()
+    const thumbRef = ref(storage, `rooms/${roomId}/thumbnail.webp`);
+    getDownloadURL(thumbRef)
+      .then(url => {
+        img.src = url;
+      })
+      .catch(() => {
+        img.src = "./noimage.jpg";
+      });
 
     img.onerror = () => {
       img.src = "./noimage.jpg";
