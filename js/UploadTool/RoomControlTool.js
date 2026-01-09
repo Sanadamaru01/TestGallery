@@ -60,10 +60,12 @@ window.addEventListener("DOMContentLoaded", () => {
   roomList.innerHTML = "";
 
   onAuthStateChanged(auth, async (user) => {
+    console.log("[Auth] state changed", user);
     roomList.innerHTML = "";
     editArea.style.display = "none";
 
     if (!user) {
+      console.log("[Auth] user is null (not signed in)");
       currentUserUid = null;
       showLoginButton();
       return;
@@ -71,8 +73,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
     if (user.uid === currentUserUid) return;
     currentUserUid = user.uid;
+    console.log("[Auth] uid =", user.uid);
 
     const userSnap = await getDoc(doc(db, "users", user.uid));
+
+    console.log("[Auth] userSnap.exists =", userSnap.exists());
+    console.log("[Auth] userSnap.data =", userSnap.data());
+    
     if (!userSnap.exists() || userSnap.data().role !== "admin") {
       alert("管理者権限がありません");
       showLoginButton();
@@ -111,6 +118,7 @@ function removeLoginButton() {
 // ルーム一覧の読み込み
 // -----------------------------
 async function loadRoomList() {
+  console.log("[RoomControl] loadRoomList start");
   roomList.innerHTML = "";
 
   const snap = await getDocs(collection(db, "rooms"));
