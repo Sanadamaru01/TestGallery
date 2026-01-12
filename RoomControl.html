@@ -51,7 +51,7 @@
     input[type="date"],
     input[type="text"],
     input[type="number"] {
-      width: 200px;
+      width: 220px;
     }
 
     .btn {
@@ -82,27 +82,20 @@
       <input type="text" id="roomTitleInput" />
     </label>
 
+    <h4>レンタル期間</h4>
+
     <label>Start Date：
       <input type="date" id="startDateInput" />
-    </label>
-
-    <label>Open Date：
-      <input type="date" id="openDateInput" />
     </label>
 
     <label>End Date：
       <input type="date" id="endDateInput" />
     </label>
-    
-    <label>壁幅（wallWidth）：
-      <input type="number" id="wallWidthInput" step="0.1">
+
+    <h4>公開期間</h4>
+
+    <label>Open Date：
+      <input type="date" id="openDateInput" />
     </label>
-    <button id="saveRoomBtn" class="btn">設定を保存</button>
 
-    <h3>初期化</h3>
-    <button id="resetRoomBtn" class="btn danger">このルームを初期化</button>
-  </div>
-
-  <script type="module" src="./js/UploadTool/RoomControlTool.js"></script>
-</body>
-</html>
+    <label
