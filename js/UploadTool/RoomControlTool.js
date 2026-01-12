@@ -38,7 +38,10 @@ const editArea = document.getElementById("editArea");
 const titleInput = document.getElementById("roomTitleInput");
 const startDateInput = document.getElementById("startDateInput");
 const openDateInput = document.getElementById("openDateInput");
+const closeDateInput = document.getElementById("closeDateInput");
 const endDateInput = document.getElementById("endDateInput");
+const wallWidthInput = document.getElementById("wallWidthInput");
+const ownerUidInput = document.getElementById("ownerUidInput");
 
 const saveRoomBtn = document.getElementById("saveRoomBtn");
 const resetRoomBtn = document.getElementById("resetRoomBtn");
@@ -180,7 +183,10 @@ async function selectRoom(roomId, cardElement) {
   titleInput.value = data.roomTitle ?? "";
   startDateInput.value = data.startDate ? toDateInputValue(data.startDate.toDate()) : "";
   openDateInput.value = data.openDate ? toDateInputValue(data.openDate.toDate()) : "";
+  closeDateInput.value = data.closeDate ? toDateInputValue(data.closeDate.toDate()) : "";
   endDateInput.value = data.endDate ? toDateInputValue(data.endDate.toDate()) : "";
+  wallWidthInput.value = data.wallWidth ?? "";
+  ownerUidInput.value = data.ownerUid ?? "";
 }
 
 function toDateInputValue(dateObj) {
@@ -202,7 +208,10 @@ saveRoomBtn.addEventListener("click", async () => {
     roomTitle: titleInput.value,
     startDate: startDateInput.value ? parseLocalDate(startDateInput.value) : null,
     openDate: openDateInput.value ? parseLocalDate(openDateInput.value) : null,
-    endDate: endDateInput.value ? parseLocalDate(endDateInput.value) : null
+    closeDate: closeDateInput.value ? parseLocalDate(closeDateInput.value) : null,
+    endDate: endDateInput.value ? parseLocalDate(endDateInput.value) : null,
+    wallWidth: wallWidthInput.value !== "" ? Number(wallWidthInput.value) : null,
+    ownerUid: ownerUidInput.value || null,
   });
 
   alert("保存しました");
@@ -236,9 +245,11 @@ resetRoomBtn.addEventListener("click", async () => {
     wallHeight: 5,
     fixedLongSide: 3,
     backgroundColor: "#fdf6e3",
+    ownerUid: null,
     roomTitle: "",
     startDate: null,
     openDate: null,
+    closeDate: null,
     endDate: null
   });
 
